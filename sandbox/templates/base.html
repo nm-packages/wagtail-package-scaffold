@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}{{ page.title }} | Wagtail Heelo World Sandbox{% endblock %}</title>
+    <style>
+        * { box-sizing: border-box; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            line-height: 1.6;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 2rem;
+            color: #333;
+        }
+        h1, h2, h3 { color: #1a1a1a; }
+        a { color: #007bff; }
+        code {
+            background: #f4f4f4;
+            padding: 0.2em 0.4em;
+            border-radius: 3px;
+            font-size: 0.9em;
+        }
+        .intro { font-size: 1.1em; color: #555; }
+        hr { border: none; border-top: 1px solid #eee; margin: 2rem 0; }
+        .package-test {
+            background: #f8f9fa;
+            padding: 1.5rem;
+            border-radius: 8px;
+            border-left: 4px solid #007bff;
+        }
+    </style>
+    {% block extra_css %}{% endblock %}
+</head>
+<body>
+    <nav>
+        <a href="/">Home</a> |
+        <a href="/admin/">Wagtail Admin</a>
+    </nav>
+
+    <main>
+        {% block content %}{% endblock %}
+    </main>
+
+    <footer style="margin-top: 3rem; padding-top: 1rem; border-top: 1px solid #eee; color: #666;">
+        <p>Wagtail Heelo World Sandbox &mdash; Development Environment</p>
+    </footer>
+
+    {% block extra_js %}{% endblock %}
+</body>
+</html>

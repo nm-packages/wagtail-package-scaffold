@@ -1,69 +1,76 @@
-# Installing the Wagtail Package Scaffolder Skill for Claude Code
+# wagtail-heelo-world
 
-## Quick Install
+[![PyPI version](https://badge.fury.io/py/wagtail-heelo-world.svg)](https://badge.fury.io/py/wagtail-heelo-world)
+[![Test](https://github.com/nickmoreton/wagtail-heelo-world/actions/workflows/test.yml/badge.svg)](https://github.com/nickmoreton/wagtail-heelo-world/actions/workflows/test.yml)
+[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 
-1. **Unzip** `wagtail-package-scaffolder-claude-code.zip` in your project root (or any directory where you want the skill available)
+A hello world package for Wagtail
 
-2. **Verify** the structure looks like:
-   ```
-   your-project/
-   └── .claude/
-       └── skills/
-           └── wagtail-package-scaffolder/
-               ├── SKILL.md
-               └── references/
-                   └── file-templates.md
-   ```
+## Requirements
 
-3. **Use it** by asking Claude Code:
-   - "Scaffold a new Wagtail package called wagtail-markdown-editor"
-   - "Create a Wagtail package for me"
-   - "New wagtail extension"
+- Python 3.10+
+- Django 4.2+
+- Wagtail 6.0+
 
-## Manual Install
-
-If you prefer, just copy the files manually:
+## Installation
 
 ```bash
-# From your project root
-mkdir -p .claude/skills/wagtail-package-scaffolder/references
-
-# Copy the files (adjust source path as needed)
-cp SKILL.md .claude/skills/wagtail-package-scaffolder/
-cp file-templates.md .claude/skills/wagtail-package-scaffolder/references/
+pip install wagtail-heelo-world
 ```
 
-## How It Works
+Add to your `INSTALLED_APPS`:
 
-When you ask Claude Code to scaffold a Wagtail package, it will:
-
-1. **Detect the skill** from the `.claude/skills/` directory
-2. **Read SKILL.md** for the workflow
-3. **Ask you for variables** (package name, author, etc.)
-4. **Read the templates** from `references/file-templates.md`
-5. **Generate all files** with your values substituted
-
-## Example Usage
-
-```
-You: Create a wagtail package called wagtail-ai-assistant
-
-Claude Code: I'll scaffold a Wagtail package for you. I need a few details:
-- Description: 
-- Author name:
-- Author email:
-- GitHub username:
-...
-
-[Claude generates all files]
+```python
+INSTALLED_APPS = [
+    # ...
+    "wagtail_heelo_world",
+    # ...
+]
 ```
 
-## Customizing
+## Quick Start
 
-Edit the files in `.claude/skills/wagtail-package-scaffolder/` to:
-- Add your default author info
-- Change version requirements
-- Add/remove features
-- Modify templates
+```python
+# Example usage - customize this section
+from wagtail_heelo_world import ...
+```
 
-The skill files are just markdown - easy to read and modify!
+## Configuration
+
+Add to your Django settings:
+
+```python
+# Optional settings with defaults
+WAGTAIL_HEELO_WORLD_SETTING = "value"
+```
+
+## Documentation
+
+Full documentation is available at [GitHub](https://github.com/nickmoreton/wagtail-heelo-world).
+
+## Development
+
+```bash
+# Clone and install
+git clone https://github.com/nickmoreton/wagtail-heelo-world.git
+cd wagtail-heelo-world
+python -m venv .venv
+source .venv/bin/activate
+pip install -e ".[dev]"
+pre-commit install
+
+# Run tests
+pytest
+
+# Run linting
+ruff check src tests
+ruff format src tests
+```
+
+## Contributing
+
+Contributions are welcome! Please read our contributing guidelines before submitting PRs.
+
+## License
+
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.

@@ -1,0 +1,7 @@
+include LICENSE
+include README.md
+include CHANGELOG.md
+recursive-include src/wagtail_heelo_world/templates *
+recursive-include src/wagtail_heelo_world/static *
+recursive-exclude * __pycache__
+recursive-exclude * *.py[co]
