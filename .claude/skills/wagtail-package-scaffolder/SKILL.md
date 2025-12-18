@@ -11,9 +11,12 @@ Generate production-ready Wagtail packages following current best practices (202
 
 When the user wants to scaffold a Wagtail package:
 
-1. Gather required variables (see **Input Variables** below)
-2. Generate all files using the structures in `references/file-templates.md`
-3. Follow the **Generation Workflow** for proper file creation order
+1. Ask if they want to create files in the current directory (default) or in a `{package_name}/` subdirectory
+2. Gather required variables (see **Input Variables** below)
+3. Generate all files using the structures in `references/file-templates.md`
+4. Follow the **Generation Workflow** for proper file creation order
+
+**Default behavior**: Generate all files in the current working directory unless user requests a subdirectory.
 
 ## Input Variables
 
@@ -35,14 +38,20 @@ Collect these from the user before generating:
 | `include_models` | No | `true` | Include example models |
 | `include_blocks` | No | `false` | Include StreamField blocks |
 | `include_api` | No | `false` | Include REST API endpoints |
+| `create_subdirectory` | No | `false` | Create package in `{package_name}/` subdirectory (default: generate in current directory) |
 
 ## Generation Workflow
+
+**IMPORTANT**: By default, generate all files in the **current working directory**. Only create a subdirectory if `create_subdirectory` is `true`.
 
 Generate files in this order:
 
 ### 1. Project Root Files
+
+Generate in current directory (or `{package_name}/` if `create_subdirectory` is true):
+
 ```
-{package_name}/
+[current directory or {package_name}/]
 ├── pyproject.toml          # ALWAYS first - defines the package
 ├── README.md
 ├── LICENSE
@@ -156,10 +165,31 @@ Official compatibility constraints:
 
 ## Post-Generation Instructions
 
-After generating all files, provide the user with:
+After generating all files, provide the user with instructions based on whether a subdirectory was created:
 
+**If files were generated in current directory (create_subdirectory=false):**
 ```bash
 # Initialize git and install
+git init
+python -m venv .venv
+source .venv/bin/activate  # or .venv\Scripts\activate on Windows
+pip install -e ".[dev]"
+pre-commit install
+
+# Run tests
+pytest
+
+# Run the sandbox site
+cd sandbox
+python manage.py migrate
+python manage.py createsuperuser
+python manage.py runserver
+# Visit http://localhost:8000/admin/ to access Wagtail admin
+```
+
+**If files were generated in subdirectory (create_subdirectory=true):**
+```bash
+# Navigate to package and initialize
 cd {package_name}
 git init
 python -m venv .venv
