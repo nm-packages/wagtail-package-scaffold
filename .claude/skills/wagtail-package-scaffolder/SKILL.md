@@ -27,9 +27,9 @@ Collect these from the user before generating:
 | `author_name` | Yes | `Jane Developer` | Package author |
 | `author_email` | Yes | `jane@example.com` | Author email |
 | `github_username` | Yes | `janedeveloper` | For repo URLs |
-| `wagtail_min` | No | `5.2` | Minimum Wagtail version (default: `6.0`) |
+| `wagtail_min` | No | `7.0` | Minimum Wagtail version (default: `7.0`) |
 | `django_min` | No | `4.2` | Minimum Django version (default: `4.2`) |
-| `python_min` | No | `3.10` | Minimum Python version (default: `3.10`) |
+| `python_min` | No | `3.10` | Minimum Python version (default: `3.10`, supports up to `3.13`) |
 | `license` | No | `MIT` | License type (default: `MIT`) |
 | `include_admin` | No | `true` | Include Wagtail admin integration |
 | `include_models` | No | `true` | Include example models |
@@ -136,13 +136,23 @@ This skill follows 2024-2025 best practices:
 
 ## Version Compatibility Matrix
 
-When setting version requirements, use this compatibility guide:
+Official compatibility constraints:
 
+**Wagtail Support:**
 | Wagtail | Django | Python |
 |---------|--------|--------|
-| 6.3+    | 4.2, 5.0, 5.1 | 3.10+ |
-| 6.0-6.2 | 4.2, 5.0 | 3.10+ |
-| 5.2     | 4.2, 5.0 | 3.8+ |
+| 7.2     | 4.2, 5.1, 5.2 | 3.10, 3.11, 3.12, 3.13, 3.14 |
+| 7.1     | 4.2, 5.1, 5.2 | 3.9, 3.10, 3.11, 3.12, 3.13 |
+| 7.0 LTS | 4.2, 5.1, 5.2 | 3.9, 3.10, 3.11, 3.12, 3.13 |
+
+**Django Support:**
+| Django | Python |
+|--------|--------|
+| 5.2    | 3.10, 3.11, 3.12, 3.13, 3.14 |
+| 5.1    | 3.10, 3.11, 3.12, 3.13 |
+| 4.2    | 3.8, 3.9, 3.10, 3.11, 3.12 |
+
+**Important:** Django 4.2 only supports up to Python 3.12. Tests exclude Python 3.13/3.14 with Django 4.2.
 
 ## Post-Generation Instructions
 

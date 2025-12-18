@@ -6,7 +6,7 @@ Before installing wagtail-heelo-world, ensure you have:
 
 - Python 3.10 or higher
 - Django 4.2 or higher
-- Wagtail 6.0 or higher
+- Wagtail 7.0 or higher
 
 ## Installation Steps
 

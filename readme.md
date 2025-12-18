@@ -10,7 +10,7 @@ A hello world package for Wagtail
 
 - Python 3.10+
 - Django 4.2+
-- Wagtail 6.0+
+- Wagtail 7.0+
 
 ## Installation
 

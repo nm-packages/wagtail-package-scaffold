@@ -24,7 +24,9 @@ classifiers = [
     "Development Status :: 3 - Alpha",
     "Environment :: Web Environment",
     "Framework :: Django",
-    "Framework :: Django :: {django_min}",
+    "Framework :: Django :: 4.2",
+    "Framework :: Django :: 5.1",
+    "Framework :: Django :: 5.2",
     "Framework :: Wagtail",
     "Framework :: Wagtail :: {wagtail_min[0]}",
     "Intended Audience :: Developers",
@@ -32,7 +34,11 @@ classifiers = [
     "Operating System :: OS Independent",
     "Programming Language :: Python",
     "Programming Language :: Python :: 3",
-    "Programming Language :: Python :: {python_min}",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Programming Language :: Python :: 3.14",
     "Topic :: Internet :: WWW/HTTP :: Dynamic Content",
 ]
 requires-python = ">={python_min}"
@@ -888,13 +894,20 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        python-version: ["{python_min}", "3.11", "3.12"]
-        django-version: ["{django_min}", "5.0"]
-        wagtail-version: ["{wagtail_min}", "6.3"]
+        python-version: ["{python_min}", "3.11", "3.12", "3.13", "3.14"]
+        django-version: ["{django_min}", "5.1", "5.2"]
+        wagtail-version: ["{wagtail_min}", "7.1", "7.2"]
         exclude:
-          # Add version exclusions as needed
-          - django-version: "5.0"
-            wagtail-version: "5.2"
+          # Python 3.14 only supported in Wagtail 7.2+
+          - python-version: "3.14"
+            wagtail-version: "7.0"
+          - python-version: "3.14"
+            wagtail-version: "7.1"
+          # Django 4.2 only supports up to Python 3.12
+          - python-version: "3.13"
+            django-version: "4.2"
+          - python-version: "3.14"
+            django-version: "4.2"
 
     steps:
       - uses: actions/checkout@v4
@@ -916,7 +929,7 @@ jobs:
 
       - name: Upload coverage
         uses: codecov/codecov-action@v4
-        if: matrix.python-version == '{python_min}' && matrix.django-version == '{django_min}'
+        if: matrix.python-version == '{python_min}' && matrix.django-version == '4.2'
 ```
 
 ---
