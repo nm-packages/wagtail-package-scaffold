@@ -2,6 +2,28 @@
 
 Complete templates for all generated files. Substitute variables using `{variable_name}` syntax.
 
+## Conditional Generation
+
+Many templates include conditional sections marked with comments like:
+- `# CONDITIONAL: If test_framework == "pytest"` - Include this section only if using pytest
+- `# CONDITIONAL: If test_framework == "unittest"` - Include this section only if using unittest
+
+When generating files, only include the sections that match the user's choices.
+
+### Examples:
+
+**For pyproject.toml dev dependencies:**
+- If `test_framework == "pytest"`: Include pytest>=8.0, pytest-django>=4.5, pytest-cov>=4.0
+- If `test_framework == "unittest"`: Include only coverage>=7.0
+
+**For test files:**
+- If `test_framework == "pytest"`: Use pytest-style tests with @pytest.mark decorators
+- If `test_framework == "unittest"`: Use Django TestCase with self.assert* methods
+
+**For Makefile/tox.ini commands:**
+- If `test_framework == "pytest"`: Use `pytest` command
+- If `test_framework == "unittest"`: Use `python -m django test --settings=tests.settings` or `coverage run -m django test`
+
 ---
 
 ## pyproject.toml
@@ -49,11 +71,15 @@ dependencies = [
 
 [project.optional-dependencies]
 dev = [
-    "pytest>=8.0",
-    "pytest-django>=4.5",
-    "pytest-cov>=4.0",
+    # CONDITIONAL: If test_framework == "pytest", include:
+    #   "pytest>=8.0",
+    #   "pytest-django>=4.5",
+    #   "pytest-cov>=4.0",
+    # CONDITIONAL: If test_framework == "unittest", include:
+    #   "coverage>=7.0",
     "ruff>=0.4",
     "pre-commit>=3.5",
+    "tox>=4.0",
     "build>=1.0",
     "twine>=5.0",
 ]
@@ -107,6 +133,7 @@ ignore = [
 known-first-party = ["{module_name}"]
 known-third-party = ["django", "wagtail"]
 
+# CONDITIONAL: Only include if test_framework == "pytest"
 [tool.pytest.ini_options]
 DJANGO_SETTINGS_MODULE = "tests.settings"
 python_files = ["test_*.py"]
@@ -116,6 +143,8 @@ addopts = "-v --tb=short"
 [tool.coverage.run]
 source = ["src/{module_name}"]
 branch = true
+# CONDITIONAL: If test_framework == "unittest", add:
+#   command_line = "-m unittest discover -s tests -p 'test_*.py'"
 
 [tool.coverage.report]
 exclude_lines = [
@@ -191,7 +220,8 @@ pip install -e ".[dev]"
 pre-commit install
 
 # Run tests
-pytest
+# CONDITIONAL: If test_framework == "pytest": pytest
+# CONDITIONAL: If test_framework == "unittest": python manage.py test
 
 # Run linting
 ruff check src tests
@@ -850,6 +880,8 @@ except ImportError:
 
 ## tests/test_models.py (if include_models)
 
+### If test_framework == "pytest":
+
 ```python
 import pytest
 from django.test import TestCase
@@ -873,6 +905,36 @@ class Test{module_name_camel}Page:
     def test_page_verbose_name(self):
         """Test the model's verbose name."""
         assert {module_name_camel}Page._meta.verbose_name == "{package_title} Page"
+```
+
+### If test_framework == "unittest":
+
+```python
+from django.test import TestCase
+from wagtail.models import Page
+
+from {module_name}.models import {module_name_camel}Page
+
+
+class {module_name_camel}PageTestCase(TestCase):
+    """Tests for {module_name_camel}Page model."""
+
+    def test_can_create_page(self):
+        """Test that the page model can be instantiated."""
+        page = {module_name_camel}Page(
+            title="Test Page",
+            slug="test-page",
+            body="<p>Test content</p>",
+        )
+        self.assertEqual(page.title, "Test Page")
+        self.assertEqual(page.body, "<p>Test content</p>")
+
+    def test_page_verbose_name(self):
+        """Test the model's verbose name."""
+        self.assertEqual(
+            {module_name_camel}Page._meta.verbose_name,
+            "{package_title} Page"
+        )
 ```
 
 ---
@@ -925,7 +987,9 @@ jobs:
           pip install -e ".[dev]"
 
       - name: Run tests
-        run: pytest --cov --cov-report=xml
+        run: |
+          # CONDITIONAL: If test_framework == "pytest": pytest --cov --cov-report=xml
+          # CONDITIONAL: If test_framework == "unittest": coverage run --source={module_name} -m django test && coverage xml
 
       - name: Upload coverage
         uses: codecov/codecov-action@v4
@@ -1125,13 +1189,14 @@ recursive-exclude * *.py[co]
 ## Makefile
 
 ```makefile
-.PHONY: help install dev test lint format clean build publish sandbox migrate superuser
+.PHONY: help install dev test test-all lint format clean build publish sandbox migrate superuser
 
 help:
 	@echo "Available commands:"
 	@echo "  make install    - Install the package"
 	@echo "  make dev        - Install with dev dependencies"
 	@echo "  make test       - Run tests"
+	@echo "  make test-all   - Run tests across all Python/Django/Wagtail versions with tox"
 	@echo "  make lint       - Run linting"
 	@echo "  make format     - Format code"
 	@echo "  make clean      - Remove build artifacts"
@@ -1151,7 +1216,11 @@ dev:
 	pre-commit install
 
 test:
-	pytest
+	# CONDITIONAL: If test_framework == "pytest": pytest
+	# CONDITIONAL: If test_framework == "unittest": python -m django test --settings=tests.settings
+
+test-all:
+	tox
 
 lint:
 	ruff check src tests sandbox
@@ -1161,7 +1230,7 @@ format:
 	ruff check --fix src tests sandbox
 
 clean:
-	rm -rf build/ dist/ *.egg-info/ .pytest_cache/ .coverage htmlcov/
+	rm -rf build/ dist/ *.egg-info/ .pytest_cache/ .coverage htmlcov/ .tox/
 	find . -type d -name __pycache__ -exec rm -rf {{}} +
 
 build: clean
@@ -1179,6 +1248,81 @@ migrate:
 
 superuser:
 	cd sandbox && python manage.py createsuperuser
+```
+
+---
+
+## tox.ini
+
+```ini
+[tox]
+envlist =
+    # Python 3.10 - all Django and Wagtail versions
+    py310-django42-wagtail{70,71,72}
+    py310-django51-wagtail{70,71,72}
+    py310-django52-wagtail{70,71,72}
+    # Python 3.11 - all Django and Wagtail versions
+    py311-django42-wagtail{70,71,72}
+    py311-django51-wagtail{70,71,72}
+    py311-django52-wagtail{70,71,72}
+    # Python 3.12 - all Django and Wagtail versions
+    py312-django42-wagtail{70,71,72}
+    py312-django51-wagtail{70,71,72}
+    py312-django52-wagtail{70,71,72}
+    # Python 3.13 - Django 5.1/5.2 only (4.2 doesn't support 3.13)
+    py313-django51-wagtail{70,71,72}
+    py313-django52-wagtail{70,71,72}
+    # Python 3.14 - Django 5.1/5.2, Wagtail 7.2 only
+    py314-django51-wagtail72
+    py314-django52-wagtail72
+
+skip_missing_interpreters = true
+
+[testenv]
+deps =
+    django42: Django>=4.2,<4.3
+    django51: Django>=5.1,<5.2
+    django52: Django>=5.2,<5.3
+    wagtail70: wagtail>=7.0,<7.1
+    wagtail71: wagtail>=7.1,<7.2
+    wagtail72: wagtail>=7.2,<7.3
+    # CONDITIONAL: If test_framework == "pytest", include:
+    pytest>=8.0
+    pytest-django>=4.5
+    pytest-cov>=4.0
+    # CONDITIONAL: If test_framework == "unittest", include:
+    coverage>=7.0
+
+commands =
+    # CONDITIONAL: If test_framework == "pytest":
+    pytest --cov={module_name} --cov-report=term-missing --cov-report=html
+    # CONDITIONAL: If test_framework == "unittest":
+    coverage run --source={module_name} -m django test --settings=tests.settings
+    coverage report
+    coverage html
+
+[testenv:lint]
+deps =
+    ruff>=0.4
+
+commands =
+    ruff check src tests sandbox
+
+[testenv:format]
+deps =
+    ruff>=0.4
+
+commands =
+    ruff format src tests sandbox
+    ruff check --fix src tests sandbox
+
+[testenv:docs]
+deps =
+    mkdocs>=1.5
+    mkdocs-material>=9.0
+
+commands =
+    mkdocs build --strict
 ```
 
 ---

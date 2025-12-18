@@ -12,11 +12,14 @@ Generate production-ready Wagtail packages following current best practices (202
 When the user wants to scaffold a Wagtail package:
 
 1. Ask if they want to create files in the current directory (default) or in a `{package_name}/` subdirectory
-2. Gather required variables (see **Input Variables** below)
-3. Generate all files using the structures in `references/file-templates.md`
-4. Follow the **Generation Workflow** for proper file creation order
+2. Ask which test framework they prefer: pytest (default) or unittest
+3. Gather required variables (see **Input Variables** below)
+4. Generate all files using the structures in `references/file-templates.md`
+5. Follow the **Generation Workflow** for proper file creation order
 
-**Default behavior**: Generate all files in the current working directory unless user requests a subdirectory.
+**Default behavior**:
+- Generate all files in the current working directory unless user requests a subdirectory
+- Use pytest for testing unless user prefers unittest
 
 ## Input Variables
 
@@ -38,11 +41,14 @@ Collect these from the user before generating:
 | `include_models` | No | `true` | Include example models |
 | `include_blocks` | No | `false` | Include StreamField blocks |
 | `include_api` | No | `false` | Include REST API endpoints |
+| `test_framework` | No | `pytest` | Testing framework: `pytest` (default) or `unittest` |
 | `create_subdirectory` | No | `false` | Create package in `{package_name}/` subdirectory (default: generate in current directory) |
 
 ## Generation Workflow
 
-**IMPORTANT**: By default, generate all files in the **current working directory**. Only create a subdirectory if `create_subdirectory` is `true`.
+**IMPORTANT**:
+- By default, generate all files in the **current working directory**. Only create a subdirectory if `create_subdirectory` is `true`.
+- When generating files with conditional sections (marked with `# CONDITIONAL:`), only include the sections that match the user's `test_framework` choice.
 
 Generate files in this order:
 
@@ -59,6 +65,7 @@ Generate in current directory (or `{package_name}/` if `create_subdirectory` is 
 ├── MANIFEST.in
 ├── .gitignore
 ├── .pre-commit-config.yaml
+├── tox.ini                 # Local testing matrix
 └── Makefile
 ```
 
