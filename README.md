@@ -4,11 +4,11 @@ A Claude Code skill that generates production-ready Wagtail packages with dynami
 
 ## Features
 
-- 🔄 **Dynamic version detection** - Automatically fetches current Wagtail/Django/Python compatibility from official sources
-- 📦 **Complete package structure** - Modern Python packaging with src layout
-- 🧪 **Test matrices** - tox.ini and GitHub Actions configured for all supported version combinations
-- 🏗️ **Optional sandbox** - Full Wagtail development site for testing
-- ⚡ **Zero maintenance** - Version data updates automatically at generation time
+- **Dynamic version detection** - Automatically fetches current Wagtail/Django/Python compatibility from official sources
+- **Complete package structure** - Modern Python packaging with src layout
+- **Test matrices** - tox.ini and GitHub Actions configured for all supported version combinations
+- **Optional sandbox** - Full Wagtail development site for testing
+- **Zero maintenance** - Version data updates automatically at generation time
 
 ## Installation
 
