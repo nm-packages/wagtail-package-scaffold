@@ -26,6 +26,128 @@ When generating files, only include the sections that match the user's choices.
 
 ---
 
+## Dynamic Version Generation
+
+Many templates include version-dependent content that must be generated dynamically based on fetched compatibility data from the version_data structure (see SKILL.md Dynamic Version Detection section).
+
+### Generation Rules
+
+**For pyproject.toml classifiers:**
+- Generate one `"Framework :: Django :: {version}"` line for each Django version in `version_data.all_django_versions`
+- Generate one `"Programming Language :: Python :: {version}"` line for each Python version in `version_data.all_python_versions`
+- Sort in ascending version order
+- Insert in the appropriate location within the classifiers array
+
+**For tox.ini envlist:**
+- Generate test environment combinations for all compatible Python/Django/Wagtail versions
+- Group by Python version with descriptive comments
+- Apply exclusion rules from `version_data.exclusions` (omit incompatible combinations)
+- Use format: `py{X}{Y}-django{A}{B}-wagtail{C}{D}` where:
+  - `{X}{Y}` = Python version without dots (e.g., "39", "310", "311")
+  - `{A}{B}` = Django version without dots (e.g., "42", "51", "52")
+  - `{C}{D}` = Wagtail version without dots (e.g., "70", "71", "72")
+- For multiple Wagtail versions with same Python/Django combination, use brace expansion: `wagtail{X,Y,Z}`
+
+**For tox.ini deps:**
+- Generate one line per Django version: `django{AB}: Django>={A.B},<{A.B+1}`
+- Generate one line per Wagtail version: `wagtail{CD}: wagtail>={C.D},<{C.D+1}`
+- Example: `django42: Django>=4.2,<4.3`
+- Example: `wagtail70: wagtail>=7.0,<7.1`
+
+**For GitHub Actions matrix:**
+- Generate `python-version` array: all Python versions from `version_data.all_python_versions`
+- Generate `django-version` array: all Django versions from `version_data.all_django_versions`
+- Generate `wagtail-version` array: all Wagtail versions from `version_data.supported_wagtail_versions` (extract version numbers)
+- Generate `exclude` array: one entry per exclusion in `version_data.exclusions`
+  - Each exclusion has a python-version field
+  - Plus either a django-version OR wagtail-version field (not both)
+
+### Generation Algorithm Examples
+
+**Example 1: Generating tox.ini envlist**
+
+```python
+# Pseudo-code for generating envlist
+envlist_lines = []
+
+for python_version in sorted(version_data.all_python_versions):
+    py_short = python_version.replace('.', '')  # "3.10" -> "310"
+
+    # Determine description
+    if python_version == version_data.defaults.python_min:
+        desc = "oldest supported"
+    elif python_version == version_data.all_python_versions[-1]:
+        desc = "latest"
+    else:
+        desc = "supported"
+
+    # Add comment
+    envlist_lines.append(f"# Python {python_version} - {desc}")
+
+    # Get valid Django versions for this Python (check exclusions)
+    valid_django = []
+    for django in version_data.all_django_versions:
+        is_excluded = any(
+            excl.get('python') == python_version and excl.get('django') == django
+            for excl in version_data.exclusions
+        )
+        if not is_excluded:
+            valid_django.append(django)
+
+    # Generate envlist lines for each Django
+    for django_version in valid_django:
+        dj_short = django_version.replace('.', '')  # "4.2" -> "42"
+
+        # Get valid Wagtail versions for this Python (check exclusions)
+        valid_wagtail = []
+        for wagtail_data in version_data.supported_wagtail_versions:
+            wagtail = wagtail_data['version']
+            is_excluded = any(
+                excl.get('python') == python_version and excl.get('wagtail') == wagtail
+                for excl in version_data.exclusions
+            )
+            if not is_excluded:
+                valid_wagtail.append(wagtail.replace('.', ''))  # "7.0" -> "70"
+
+        # Format wagtail versions
+        if len(valid_wagtail) > 1:
+            wt_str = f"{{{','.join(valid_wagtail)}}}"
+        elif len(valid_wagtail) == 1:
+            wt_str = valid_wagtail[0]
+        else:
+            continue  # Skip if no valid wagtail versions
+
+        envlist_lines.append(f"py{py_short}-django{dj_short}-wagtail{wt_str}")
+```
+
+**Example 2: Generating GitHub Actions exclusions**
+
+```python
+# Pseudo-code for generating exclusions
+exclusions = []
+
+for excl in version_data.exclusions:
+    exclusion_entry = {
+        "python-version": excl['python']
+    }
+
+    if 'django' in excl:
+        exclusion_entry['django-version'] = excl['django']
+    elif 'wagtail' in excl:
+        exclusion_entry['wagtail-version'] = excl['wagtail']
+
+    exclusions.append(exclusion_entry)
+```
+
+### Important Notes
+
+- **Always validate generated content**: Ensure YAML syntax is correct for GitHub Actions, INI syntax for tox.ini
+- **Include explanatory comments**: Add comments in generated files explaining why certain combinations are excluded
+- **Maintain readability**: Group related environments together, use consistent formatting
+- **Test coverage**: Ensure all supported version combinations are included in test matrices
+
+---
+
 ## pyproject.toml
 
 ```toml
@@ -42,13 +164,31 @@ license = {{ file = "LICENSE" }}
 authors = [
     {{ name = "{author_name}", email = "{author_email}" }}
 ]
+# DYNAMIC GENERATION: Generate classifiers from version_data
+# For each django_version in version_data.all_django_versions:
+#     Add line: "Framework :: Django :: {django_version}",
+# For each python_version in version_data.all_python_versions:
+#     Add line: "Programming Language :: Python :: {python_version}",
+#
+# Algorithm:
+# 1. Start with static classifiers (Development Status, Environment, etc.)
+# 2. Add "Framework :: Django",
+# 3. For each django_version in version_data.all_django_versions (sorted):
+#    - Add "Framework :: Django :: {django_version}",
+# 4. Add "Framework :: Wagtail" and wagtail major version classifier
+# 5. Add static classifiers (Intended Audience, License, etc.)
+# 6. Add "Programming Language :: Python" and "Programming Language :: Python :: 3",
+# 7. For each python_version in version_data.all_python_versions (sorted):
+#    - Add "Programming Language :: Python :: {python_version}",
+# 8. End with "Topic :: Internet :: WWW/HTTP :: Dynamic Content",
 classifiers = [
     "Development Status :: 3 - Alpha",
     "Environment :: Web Environment",
     "Framework :: Django",
-    "Framework :: Django :: 4.2",
-    "Framework :: Django :: 5.1",
-    "Framework :: Django :: 5.2",
+    # <DYNAMIC: Insert Django version classifiers here>
+    # Example: "Framework :: Django :: 4.2",
+    # Example: "Framework :: Django :: 5.1",
+    # Example: "Framework :: Django :: 5.2",
     "Framework :: Wagtail",
     "Framework :: Wagtail :: {wagtail_min[0]}",
     "Intended Audience :: Developers",
@@ -56,11 +196,13 @@ classifiers = [
     "Operating System :: OS Independent",
     "Programming Language :: Python",
     "Programming Language :: Python :: 3",
-    "Programming Language :: Python :: 3.10",
-    "Programming Language :: Python :: 3.11",
-    "Programming Language :: Python :: 3.12",
-    "Programming Language :: Python :: 3.13",
-    "Programming Language :: Python :: 3.14",
+    # <DYNAMIC: Insert Python version classifiers here>
+    # Example: "Programming Language :: Python :: 3.9",
+    # Example: "Programming Language :: Python :: 3.10",
+    # Example: "Programming Language :: Python :: 3.11",
+    # Example: "Programming Language :: Python :: 3.12",
+    # Example: "Programming Language :: Python :: 3.13",
+    # Example: "Programming Language :: Python :: 3.14",
     "Topic :: Internet :: WWW/HTTP :: Dynamic Content",
 ]
 requires-python = ">={python_min}"
@@ -943,26 +1085,48 @@ on:
   pull_request:
     branches: [main]
 
+# DYNAMIC GENERATION: Generate matrix from version_data
+#
+# Matrix arrays (format as JSON arrays in YAML):
+#   python-version: All Python versions from version_data.all_python_versions
+#   django-version: All Django versions from version_data.all_django_versions
+#   wagtail-version: All Wagtail versions from version_data.supported_wagtail_versions
+#
+# Exclusions (format as YAML array of objects):
+#   For each item in version_data.exclusions:
+#     - python-version: "{excl.python}"
+#       {django-version OR wagtail-version}: "{excl.django OR excl.wagtail}"
+#       # Add comment with reason: {excl.reason}
+#
+# Example output:
 jobs:
   test:
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
       matrix:
-        python-version: ["{python_min}", "3.11", "3.12", "3.13", "3.14"]
-        django-version: ["{django_min}", "5.1", "5.2"]
-        wagtail-version: ["{wagtail_min}", "7.1", "7.2"]
+        # <DYNAMIC: Generate python-version array>
+        # Example: python-version: ["3.9", "3.10", "3.11", "3.12", "3.13", "3.14"]
+        python-version: []
+        # <DYNAMIC: Generate django-version array>
+        # Example: django-version: ["4.2", "5.1", "5.2"]
+        django-version: []
+        # <DYNAMIC: Generate wagtail-version array>
+        # Example: wagtail-version: ["7.0", "7.1", "7.2"]
+        wagtail-version: []
         exclude:
-          # Python 3.14 only supported in Wagtail 7.2+
-          - python-version: "3.14"
-            wagtail-version: "7.0"
-          - python-version: "3.14"
-            wagtail-version: "7.1"
-          # Django 4.2 only supports up to Python 3.12
-          - python-version: "3.13"
-            django-version: "4.2"
-          - python-version: "3.14"
-            django-version: "4.2"
+          # <DYNAMIC: Generate exclusions from version_data.exclusions>
+          # Example entries:
+          # # Python 3.14 only supported in Wagtail 7.2+
+          # - python-version: "3.14"
+          #   wagtail-version: "7.0"
+          # - python-version: "3.14"
+          #   wagtail-version: "7.1"
+          # # Django 4.2 only supports up to Python 3.12
+          # - python-version: "3.13"
+          #   django-version: "4.2"
+          # - python-version: "3.14"
+          #   django-version: "4.2"
 
     steps:
       - uses: actions/checkout@v4
@@ -1248,37 +1412,60 @@ superuser:
 ## tox.ini
 
 ```ini
+# DYNAMIC GENERATION: Generate envlist from version_data
+#
+# Algorithm (see Dynamic Version Generation section for full pseudo-code):
+# 1. Group by Python version in ascending order
+# 2. For each Python version:
+#    a. Add comment describing the version (e.g., "# Python 3.9 - oldest supported")
+#    b. For each compatible Django version (check exclusions):
+#       i. Get compatible Wagtail versions (check exclusions)
+#       ii. Format as: py{XX}-django{YY}-wagtail{Z1,Z2,Z3}
+#       iii. Add to envlist
+# 3. Exclusions to apply:
+#    - Python 3.13/3.14 + Django 4.2 (Django 4.2 max is Python 3.12)
+#    - Python 3.14 + Wagtail 7.0/7.1 (Python 3.14 only in Wagtail 7.2+)
+#
+# Example output structure:
 [tox]
 envlist =
-    # Python 3.10 - all Django and Wagtail versions
-    py310-django42-wagtail{70,71,72}
-    py310-django51-wagtail{70,71,72}
-    py310-django52-wagtail{70,71,72}
-    # Python 3.11 - all Django and Wagtail versions
-    py311-django42-wagtail{70,71,72}
-    py311-django51-wagtail{70,71,72}
-    py311-django52-wagtail{70,71,72}
-    # Python 3.12 - all Django and Wagtail versions
-    py312-django42-wagtail{70,71,72}
-    py312-django51-wagtail{70,71,72}
-    py312-django52-wagtail{70,71,72}
-    # Python 3.13 - Django 5.1/5.2 only (4.2 doesn't support 3.13)
-    py313-django51-wagtail{70,71,72}
-    py313-django52-wagtail{70,71,72}
-    # Python 3.14 - Django 5.1/5.2, Wagtail 7.2 only
-    py314-django51-wagtail72
-    py314-django52-wagtail72
+    # <DYNAMIC: Generate envlist based on version_data>
+    # Example for Python 3.9 (if supported):
+    # # Python 3.9 - oldest supported
+    # py39-django42-wagtail{70,71}
+    # Example for Python 3.10:
+    # # Python 3.10 - all versions
+    # py310-django42-wagtail{70,71,72}
+    # py310-django51-wagtail{70,71,72}
+    # py310-django52-wagtail{70,71,72}
+    # Example for Python 3.13 (excluding Django 4.2):
+    # # Python 3.13 - Django 5.1+ only (4.2 doesn't support 3.13)
+    # py313-django51-wagtail{70,71,72}
+    # py313-django52-wagtail{70,71,72}
+    # Example for Python 3.14 (if supported, only Wagtail 7.2):
+    # # Python 3.14 - Django 5.2, Wagtail 7.2 only
+    # py314-django52-wagtail72
 
 skip_missing_interpreters = true
 
+# DYNAMIC GENERATION: Generate deps from version_data
+#
+# For each Django version in version_data.all_django_versions:
+#     django{AB}: Django>={A.B},<{A.B+1}
+# For each Wagtail version in version_data.supported_wagtail_versions:
+#     wagtail{CD}: wagtail>={C.D},<{C.D+1}
+#
+# Example output:
 [testenv]
 deps =
-    django42: Django>=4.2,<4.3
-    django51: Django>=5.1,<5.2
-    django52: Django>=5.2,<5.3
-    wagtail70: wagtail>=7.0,<7.1
-    wagtail71: wagtail>=7.1,<7.2
-    wagtail72: wagtail>=7.2,<7.3
+    # <DYNAMIC: Generate Django deps>
+    # Example: django42: Django>=4.2,<4.3
+    # Example: django51: Django>=5.1,<5.2
+    # Example: django52: Django>=5.2,<5.3
+    # <DYNAMIC: Generate Wagtail deps>
+    # Example: wagtail70: wagtail>=7.0,<7.1
+    # Example: wagtail71: wagtail>=7.1,<7.2
+    # Example: wagtail72: wagtail>=7.2,<7.3
     # CONDITIONAL: If test_framework == "pytest", include:
     pytest>=8.0
     pytest-django>=4.5
