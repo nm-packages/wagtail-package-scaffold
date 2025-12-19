@@ -11,15 +11,22 @@ Generate production-ready Wagtail packages following current best practices (202
 
 When the user wants to scaffold a Wagtail package:
 
-1. Ask if they want to create files in the current directory (default) or in a `{package_name}/` subdirectory
-2. Ask which test framework they prefer: pytest (default) or unittest
-3. Gather required variables (see **Input Variables** below)
-4. Generate all files using the structures in `references/file-templates.md`
-5. Follow the **Generation Workflow** for proper file creation order
+1. **GUARDRAIL CHECK**: Verify the directory is clean before proceeding
+   - Check if any files exist besides: `.claude/`, `claude_code_install.md`, `readme.md` (case-insensitive)
+   - If other files exist, abort with an error message: "The directory contains existing files. This skill only works in a clean directory with just the .claude folder and optional readme.md/claude_code_install.md files. Please run this skill in an empty directory or a new subdirectory."
+   - Only proceed if the directory is clean
+
+2. Ask if they want to create files in the current directory (default) or in a `{package_name}/` subdirectory
+3. Ask which test framework they prefer: pytest (default) or unittest
+4. Ask if they want to include a sandbox development site (default: yes)
+5. Gather required variables (see **Input Variables** below)
+6. Generate all files using the structures in `references/file-templates.md`
+7. Follow the **Generation Workflow** for proper file creation order
 
 **Default behavior**:
 - Generate all files in the current working directory unless user requests a subdirectory
 - Use pytest for testing unless user prefers unittest
+- Include sandbox development site unless user opts out
 
 ## Input Variables
 
@@ -42,6 +49,7 @@ Collect these from the user before generating:
 | `include_blocks` | No | `false` | Include StreamField blocks |
 | `include_api` | No | `false` | Include REST API endpoints |
 | `test_framework` | No | `pytest` | Testing framework: `pytest` (default) or `unittest` |
+| `include_sandbox` | No | `true` | Include sandbox development site (default: `true`) |
 | `create_subdirectory` | No | `false` | Create package in `{package_name}/` subdirectory (default: generate in current directory) |
 
 ## Generation Workflow
@@ -49,6 +57,7 @@ Collect these from the user before generating:
 **IMPORTANT**:
 - By default, generate all files in the **current working directory**. Only create a subdirectory if `create_subdirectory` is `true`.
 - When generating files with conditional sections (marked with `# CONDITIONAL:`), only include the sections that match the user's `test_framework` choice.
+- If `include_sandbox` is `false`, skip the entire sandbox generation section (section 2) and omit sandbox-related commands from the Makefile (sandbox, migrate, superuser targets).
 
 Generate files in this order:
 
@@ -70,7 +79,7 @@ Generate in current directory (or `{package_name}/` if `create_subdirectory` is 
 └── Makefile
 ```
 
-### 2. Sandbox Development Site
+### 2. Sandbox Development Site (if include_sandbox is true)
 ```
 sandbox/
 ├── manage.py
@@ -94,6 +103,8 @@ The sandbox is a minimal but complete Wagtail site that:
 - Runs with SQLite for simplicity
 - Includes a basic home app with a HomePage model
 - Can be extended to test all package features
+
+**Note**: Only generate the sandbox if `include_sandbox` is `true`. If the user opts out, skip this entire section.
 
 ### 3. Source Package
 ```
@@ -178,15 +189,15 @@ After generating all files, provide the user with instructions based on whether 
 **If files were generated in current directory (create_subdirectory=false):**
 ```bash
 # Initialize git and install
-git init
 python -m venv .venv
 source .venv/bin/activate  # or .venv\Scripts\activate on Windows
 pip install -e ".[dev]"
 pre-commit install
 
 # Run tests
-pytest
+{test_command}  # pytest or python test_manage.py test depending on test_framework
 
+# If sandbox was included:
 # Run the sandbox site
 cd sandbox
 python manage.py migrate
@@ -199,15 +210,15 @@ python manage.py runserver
 ```bash
 # Navigate to package and initialize
 cd {package_name}
-git init
 python -m venv .venv
 source .venv/bin/activate  # or .venv\Scripts\activate on Windows
 pip install -e ".[dev]"
 pre-commit install
 
 # Run tests
-pytest
+{test_command}  # pytest or python test_manage.py test depending on test_framework
 
+# If sandbox was included:
 # Run the sandbox site
 cd sandbox
 python manage.py migrate
