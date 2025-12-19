@@ -63,6 +63,7 @@ Generate in current directory (or `{package_name}/` if `create_subdirectory` is 
 ├── LICENSE
 ├── CHANGELOG.md
 ├── MANIFEST.in
+├── test_manage.py          # Django management wrapper for tests
 ├── .gitignore
 ├── .pre-commit-config.yaml
 ├── tox.ini                 # Local testing matrix
@@ -99,10 +100,10 @@ The sandbox is a minimal but complete Wagtail site that:
 src/{module_name}/
 ├── __init__.py             # Version and default_app_config
 ├── apps.py                 # Django AppConfig
-├── wagtail_hooks.py        # Wagtail hooks (if include_admin)
-├── models.py               # Models (if include_models)
+├── models.py               # Models (empty placeholder)
+├── views.py                # Views (empty placeholder)
+├── wagtail_hooks.py        # Wagtail hooks (empty placeholder)
 ├── blocks.py               # StreamField blocks (if include_blocks)
-├── views.py                # Views (if include_api)
 ├── urls.py                 # URL routing (if include_api)
 ├── templates/{module_name}/
 │   └── .gitkeep
@@ -116,7 +117,7 @@ tests/
 ├── __init__.py
 ├── conftest.py             # pytest fixtures
 ├── settings.py             # Django test settings
-├── test_models.py          # Model tests (if include_models)
+├── test_models.py          # Placeholder model tests
 └── urls.py                 # Test URL config
 ```
 
@@ -219,8 +220,9 @@ python manage.py runserver
 
 Tell the user where to customize:
 
-1. **Add models**: `src/{module_name}/models.py`
-2. **Add admin UI**: `src/{module_name}/wagtail_hooks.py`
-3. **Add blocks**: `src/{module_name}/blocks.py`
-4. **Add templates**: `src/{module_name}/templates/{module_name}/`
-5. **Configure settings**: Document in `README.md` and `docs/configuration.md`
+1. **Add models**: `src/{module_name}/models.py` (empty placeholder ready for your models)
+2. **Add views**: `src/{module_name}/views.py` (empty placeholder ready for your views)
+3. **Add Wagtail hooks**: `src/{module_name}/wagtail_hooks.py` (empty placeholder ready for your hooks)
+4. **Add blocks**: `src/{module_name}/blocks.py` (if `include_blocks` is enabled)
+5. **Add templates**: `src/{module_name}/templates/{module_name}/`
+6. **Configure settings**: Document in `README.md` and `docs/configuration.md`

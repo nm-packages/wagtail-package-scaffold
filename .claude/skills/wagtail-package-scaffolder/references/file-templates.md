@@ -221,7 +221,7 @@ pre-commit install
 
 # Run tests
 # CONDITIONAL: If test_framework == "pytest": pytest
-# CONDITIONAL: If test_framework == "unittest": python manage.py test
+# CONDITIONAL: If test_framework == "unittest": python test_manage.py test
 
 # Run linting
 ruff check src tests
@@ -271,58 +271,18 @@ class {module_name_camel}Config(AppConfig):
 
 ---
 
-## src/{module_name}/models.py (if include_models)
+## src/{module_name}/models.py
 
 ```python
-from django.db import models
-from wagtail.models import Page
-from wagtail.fields import RichTextField
-from wagtail.admin.panels import FieldPanel
-
-
-class {module_name_camel}Page(Page):
-    """
-    Example page model - customize or replace as needed.
-    """
-
-    body = RichTextField(blank=True)
-
-    content_panels = Page.content_panels + [
-        FieldPanel("body"),
-    ]
-
-    class Meta:
-        verbose_name = "{package_title} Page"
-        verbose_name_plural = "{package_title} Pages"
+# Add your models here
 ```
 
 ---
 
-## src/{module_name}/wagtail_hooks.py (if include_admin)
+## src/{module_name}/wagtail_hooks.py
 
 ```python
-from wagtail import hooks
-from wagtail.admin.menu import MenuItem
-
-
-@hooks.register("register_admin_menu_item")
-def register_menu_item():
-    return MenuItem(
-        "{package_title}",
-        "/admin/{module_name}/",
-        icon_name="cog",
-        order=10000,
-    )
-
-
-# Uncomment to add custom admin URLs
-# @hooks.register("register_admin_urls")
-# def register_admin_urls():
-#     from django.urls import path
-#     from . import views
-#     return [
-#         path("{module_name}/", views.index, name="{module_name}_index"),
-#     ]
+# Add your Wagtail hooks here
 ```
 
 ---
@@ -351,20 +311,10 @@ class {module_name_camel}Block(blocks.StructBlock):
 
 ---
 
-## src/{module_name}/views.py (if include_api)
+## src/{module_name}/views.py
 
 ```python
-from django.http import JsonResponse
-from django.views import View
-
-
-class {module_name_camel}APIView(View):
-    """
-    Example API view - customize as needed.
-    """
-
-    def get(self, request):
-        return JsonResponse({{"status": "ok", "data": []}})
+# Add your views here
 ```
 
 ---
@@ -786,6 +736,13 @@ def sample_data():
 ## tests/settings.py
 
 ```python
+import sys
+from pathlib import Path
+
+# Add src directory to Python path
+BASE_DIR = Path(__file__).resolve().parent.parent
+sys.path.insert(0, str(BASE_DIR / "src"))
+
 SECRET_KEY = "test-secret-key-not-for-production"
 DEBUG = True
 
@@ -878,63 +835,55 @@ except ImportError:
 
 ---
 
-## tests/test_models.py (if include_models)
+## test_manage.py
+
+```python
+#!/usr/bin/env python
+
+import os
+import sys
+
+from django.core.management import execute_from_command_line
+
+
+def main():
+    os.environ["DJANGO_SETTINGS_MODULE"] = "tests.settings"
+    execute_from_command_line(sys.argv)
+
+
+if __name__ == "__main__":
+    main()
+```
+
+---
+
+## tests/test_models.py
 
 ### If test_framework == "pytest":
 
 ```python
 import pytest
-from django.test import TestCase
-from wagtail.models import Page
-
-from {module_name}.models import {module_name_camel}Page
 
 
 @pytest.mark.django_db
-class Test{module_name_camel}Page:
-    def test_can_create_page(self, django_db_setup):
-        """Test that the page model can be instantiated."""
-        page = {module_name_camel}Page(
-            title="Test Page",
-            slug="test-page",
-            body="<p>Test content</p>",
-        )
-        assert page.title == "Test Page"
-        assert page.body == "<p>Test content</p>"
-
-    def test_page_verbose_name(self):
-        """Test the model's verbose name."""
-        assert {module_name_camel}Page._meta.verbose_name == "{package_title} Page"
+class TestModels:
+    def test_placeholder(self):
+        """Placeholder test - add your model tests here."""
+        assert True
 ```
 
 ### If test_framework == "unittest":
 
 ```python
 from django.test import TestCase
-from wagtail.models import Page
-
-from {module_name}.models import {module_name_camel}Page
 
 
-class {module_name_camel}PageTestCase(TestCase):
-    """Tests for {module_name_camel}Page model."""
+class ModelsTestCase(TestCase):
+    """Tests for models - add your tests here."""
 
-    def test_can_create_page(self):
-        """Test that the page model can be instantiated."""
-        page = {module_name_camel}Page(
-            title="Test Page",
-            slug="test-page",
-            body="<p>Test content</p>",
-        )
-        self.assertEqual(page.title, "Test Page")
-        self.assertEqual(page.body, "<p>Test content</p>")
-
-    def test_page_verbose_name(self):
-        """Test the model's verbose name."""
-        self.assertEqual(
-            {module_name_camel}Page._meta.verbose_name,
-            "{package_title} Page"
-        )
+    def test_placeholder(self):
+        """Placeholder test - add your model tests here."""
+        self.assertTrue(True)
 ```
 
 ---
@@ -989,7 +938,7 @@ jobs:
       - name: Run tests
         run: |
           # CONDITIONAL: If test_framework == "pytest": pytest --cov --cov-report=xml
-          # CONDITIONAL: If test_framework == "unittest": coverage run --source={module_name} -m django test && coverage xml
+          # CONDITIONAL: If test_framework == "unittest": coverage run test_manage.py test && coverage xml
 
       - name: Upload coverage
         uses: codecov/codecov-action@v4
@@ -1217,7 +1166,7 @@ dev:
 
 test:
 	# CONDITIONAL: If test_framework == "pytest": pytest
-	# CONDITIONAL: If test_framework == "unittest": python -m django test --settings=tests.settings
+	# CONDITIONAL: If test_framework == "unittest": python test_manage.py test
 
 test-all:
 	tox
@@ -1297,7 +1246,8 @@ commands =
     # CONDITIONAL: If test_framework == "pytest":
     pytest --cov={module_name} --cov-report=term-missing --cov-report=html
     # CONDITIONAL: If test_framework == "unittest":
-    coverage run --source={module_name} -m django test --settings=tests.settings
+    python test_manage.py test
+    coverage run test_manage.py test
     coverage report
     coverage html
 
