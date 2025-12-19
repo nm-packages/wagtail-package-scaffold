@@ -45,3 +45,10 @@ echo "  Open Claude Code and ask:"
 echo "  'Create a Wagtail package called [your-package-name]'"
 echo ""
 echo "📚 For more info, see: ${REPO}"
+echo ""
+
+# Remove this installation script
+if [ -f "install.sh" ]; then
+    echo "🗑️  Cleaning up installation script..."
+    rm -f install.sh
+fi

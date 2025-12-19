@@ -12,7 +12,10 @@ A Claude Code skill that generates production-ready Wagtail packages with dynami
 
 ## Installation
 
-### Option 1: Quick Install (Recommended)
+**Security Note**: Before running any installation script, review what it does:
+```bash
+curl https://raw.githubusercontent.com/nm-packages/wagtail-package-scaffold/main/install.sh | less
+```
 
 In your new empty folder where you want to generate a package:
 
@@ -20,35 +23,14 @@ In your new empty folder where you want to generate a package:
 curl -sSL https://raw.githubusercontent.com/nm-packages/wagtail-package-scaffold/main/install.sh | bash
 ```
 
-Or download and run the script:
+Or download, inspect, and run the script (it will clean itself up after installation):
 
 ```bash
 curl -O https://raw.githubusercontent.com/nm-packages/wagtail-package-scaffold/main/install.sh
+cat install.sh  # Review the script
 chmod +x install.sh
 ./install.sh
 ```
-
-### Option 2: Manual Download
-
-Download only the `.claude/` folder (the skill files):
-
-```bash
-# Download the repository ZIP
-curl -L https://github.com/nm-packages/wagtail-package-scaffold/archive/refs/heads/main.zip -o skill.zip
-
-# Extract only the .claude directory
-unzip -j skill.zip "wagtail-package-scaffold-main/.claude/skills/wagtail-package-scaffolder/*" -d .claude/skills/wagtail-package-scaffolder/
-unzip -j skill.zip "wagtail-package-scaffold-main/.claude/skills/wagtail-package-scaffolder/references/*" -d .claude/skills/wagtail-package-scaffolder/references/
-
-# Clean up
-rm skill.zip
-
-echo "✅ Skill installed in .claude/skills/wagtail-package-scaffolder/"
-```
-
-**Note**: Only the `.claude/` folder is required - you don't need any other files from the repository.
-
-### Using the Skill
 
 Once installed, run Claude Code and ask:
 ```
