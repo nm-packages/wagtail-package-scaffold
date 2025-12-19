@@ -5,7 +5,7 @@
 
 set -e
 
-REPO="https://github.com/nickmoreton/claude-code-wagtail-package-scaffolder"
+REPO="https://github.com/nm-packages/wagtail-package-scaffold"
 BRANCH="main"
 
 echo "📦 Installing Wagtail Package Scaffolder skill..."
