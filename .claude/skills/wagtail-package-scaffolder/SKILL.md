@@ -117,7 +117,14 @@ The `wagtail start sandbox` command creates a complete Wagtail site structure wi
 **Post-generation modifications**:
 After running `wagtail start sandbox`, you MUST make the following modifications:
 
-1. **Consolidate settings files** (if `wagtail start` created multiple settings files):
+1. **Remove unnecessary files** created by `wagtail start`:
+   - Delete `.dockerignore` (if exists)
+   - Delete `Dockerfile` (if exists)
+   - Delete `requirements.txt` (if exists)
+
+   These files are not needed since the package uses `pyproject.toml` for dependency management and doesn't require Docker configuration.
+
+2. **Consolidate settings files** (if `wagtail start` created multiple settings files):
    - If `sandbox/sandbox/settings/` directory exists with `base.py`, `dev.py`, and `production.py`:
      - Copy any development-specific settings from `dev.py` into `base.py`
      - Remove `dev.py` and `production.py`
@@ -125,7 +132,7 @@ After running `wagtail start sandbox`, you MUST make the following modifications
      - Remove the now-empty `settings/` directory
    - Ensure `DEBUG = True` is set in the settings file for easy development
 
-2. **Update the settings file** (`sandbox/sandbox/settings.py`) to integrate the package:
+3. **Update the settings file** (`sandbox/sandbox/settings.py`) to integrate the package:
 
    a. Add the src directory to the Python path (add after the BASE_DIR/PROJECT_DIR definitions):
    ```python
@@ -272,6 +279,32 @@ python manage.py createsuperuser
 python manage.py runserver
 # Visit http://localhost:8000/admin/ to access Wagtail admin
 ```
+
+## Cleanup Scaffolding Files
+
+After providing all post-generation instructions, inform the user about cleanup:
+
+**IMPORTANT**: Use the AskUserQuestion tool to ask the user if they want to remove the scaffolding files.
+
+Tell the user:
+"Now that your package is scaffolded, the following files/folders are no longer needed for developing or using the package:
+- `.claude/` - Contains the scaffolding skill (no longer needed)
+- `claude_code_install.md` - Claude Code installation instructions (no longer needed)
+
+Would you like me to remove these files to keep your package clean?"
+
+If the user agrees (answers yes):
+1. Remove the `.claude/` directory and all its contents
+2. Remove the `claude_code_install.md` file (if it exists)
+3. Confirm the removal with a brief message
+
+If the user declines:
+1. Acknowledge their choice
+2. Remind them they can manually delete these files anytime with:
+   ```bash
+   rm -rf .claude
+   rm -f claude_code_install.md
+   ```
 
 ## Customization Points
 

@@ -1,4 +1,4 @@
-# Wagtail Package Scaffolder
+# Wagtail Package Scaffolding Skill
 
 A Claude Code skill for scaffolding production-ready Wagtail packages with modern Python tooling and best practices.
 
