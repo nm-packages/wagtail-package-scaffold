@@ -23,15 +23,6 @@ In your new empty folder where you want to generate a package:
 curl -sSL https://raw.githubusercontent.com/nm-packages/wagtail-package-scaffold/main/install.sh | bash
 ```
 
-Or download, inspect, and run the script (it will clean itself up after installation):
-
-```bash
-curl -O https://raw.githubusercontent.com/nm-packages/wagtail-package-scaffold/main/install.sh
-cat install.sh  # Review the script
-chmod +x install.sh
-./install.sh
-```
-
 Once installed, run Claude Code and ask:
 ```
 Create a Wagtail package called [your-package-name]
