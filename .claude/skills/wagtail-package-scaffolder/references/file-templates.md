@@ -337,7 +337,51 @@ urlpatterns = [
 
 ## Sandbox Development Site
 
-The sandbox is a complete Wagtail site for developing and testing the package locally.
+**IMPORTANT**: The sandbox is generated using the `wagtail start sandbox` command as described in SKILL.md.
+
+### Required Modifications After `wagtail start sandbox`
+
+After running the command, you MUST make the following modifications:
+
+1. **Consolidate settings files** (if `wagtail start` created multiple settings files):
+   - If `sandbox/sandbox/settings/` directory exists with `base.py`, `dev.py`, and `production.py`:
+     - Copy any development-specific settings from `dev.py` into `base.py`
+     - Remove `dev.py` and `production.py`
+     - Rename `settings/base.py` to `settings.py` in the `sandbox/sandbox/` directory
+     - Remove the now-empty `settings/` directory
+   - Ensure `DEBUG = True` is set in the settings file for easy development
+
+2. **Update the settings file** (`sandbox/sandbox/settings.py`) to integrate the package:
+
+   a. Add these imports and path modifications near the top (after BASE_DIR):
+   ```python
+   import sys
+   from pathlib import Path
+
+   BASE_DIR = Path(__file__).resolve().parent.parent
+   PROJECT_DIR = BASE_DIR.parent
+
+   # Add the src directory to the path so the package can be imported
+   sys.path.insert(0, str(PROJECT_DIR / "src"))
+   ```
+
+   b. Add the package to INSTALLED_APPS. Insert `"{module_name}"` in the INSTALLED_APPS list after "home" and before the Wagtail apps:
+   ```python
+   INSTALLED_APPS = [
+       # Local apps
+       "home",
+       # The package being developed
+       "{module_name}",
+       # Wagtail apps
+       "wagtail.contrib.forms",
+       # ... rest of Wagtail apps
+   ```
+
+---
+
+## Reference: Sandbox Structure
+
+The following shows the expected structure and files created by `wagtail start sandbox` for reference:
 
 ### sandbox/manage.py
 

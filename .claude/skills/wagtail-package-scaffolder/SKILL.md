@@ -80,29 +80,71 @@ Generate in current directory (or `{package_name}/` if `create_subdirectory` is 
 ```
 
 ### 2. Sandbox Development Site (if include_sandbox is true)
-```
-sandbox/
-├── manage.py
-├── sandbox/
-│   ├── __init__.py
-│   ├── settings.py         # Full Django/Wagtail settings
-│   ├── urls.py
-│   └── wsgi.py
-├── home/
-│   ├── __init__.py
-│   ├── models.py           # Basic HomePage model
-│   ├── migrations/
-│   │   └── 0001_initial.py
-│   └── templates/home/home_page.html
-└── templates/
-    └── base.html
-```
 
-The sandbox is a minimal but complete Wagtail site that:
-- Imports the package being developed from `src/`
-- Runs with SQLite for simplicity
-- Includes a basic home app with a HomePage model
-- Can be extended to test all package features
+**IMPORTANT**: The sandbox is generated using the official `wagtail start` command.
+
+To generate the sandbox:
+
+1. **Create and activate a temporary virtual environment** for running the wagtail command:
+   ```bash
+   python -m venv .venv-temp
+   source .venv-temp/bin/activate  # or .venv-temp\Scripts\activate on Windows
+   ```
+
+2. **Install Wagtail** in the temporary environment:
+   ```bash
+   pip install wagtail
+   ```
+
+3. **Run the wagtail start command**:
+   ```bash
+   wagtail start sandbox
+   ```
+
+4. **Deactivate and remove the temporary environment**:
+   ```bash
+   deactivate
+   rm -rf .venv-temp
+   ```
+
+The `wagtail start sandbox` command creates a complete Wagtail site structure with:
+- Full Django/Wagtail settings
+- A home app with a basic HomePage model
+- All necessary configuration files
+- Template structure
+- Migrations
+
+**Post-generation modifications**:
+After running `wagtail start sandbox`, you MUST make the following modifications:
+
+1. **Consolidate settings files** (if `wagtail start` created multiple settings files):
+   - If `sandbox/sandbox/settings/` directory exists with `base.py`, `dev.py`, and `production.py`:
+     - Copy any development-specific settings from `dev.py` into `base.py`
+     - Remove `dev.py` and `production.py`
+     - Rename `settings/base.py` to `settings.py` in the `sandbox/sandbox/` directory
+     - Remove the now-empty `settings/` directory
+   - Ensure `DEBUG = True` is set in the settings file for easy development
+
+2. **Update the settings file** (`sandbox/sandbox/settings.py`) to integrate the package:
+
+   a. Add the src directory to the Python path (add after the BASE_DIR/PROJECT_DIR definitions):
+   ```python
+   import sys
+   PROJECT_DIR = BASE_DIR.parent
+   sys.path.insert(0, str(PROJECT_DIR / "src"))
+   ```
+
+   b. Add the package to INSTALLED_APPS. Insert `"{module_name}"` in the INSTALLED_APPS list after "home" and before the Wagtail apps:
+   ```python
+   INSTALLED_APPS = [
+       # Local apps
+       "home",
+       # The package being developed
+       "{module_name}",
+       # Wagtail apps
+       "wagtail.contrib.forms",
+       # ... rest of Wagtail apps
+   ```
 
 **Note**: Only generate the sandbox if `include_sandbox` is `true`. If the user opts out, skip this entire section.
 
@@ -196,9 +238,11 @@ pre-commit install
 
 # Run tests
 {test_command}  # pytest or python test_manage.py test depending on test_framework
+```
 
-# If sandbox was included:
-# Run the sandbox site
+**If sandbox was included, also tell the user:**
+```bash
+# To run the sandbox development server:
 cd sandbox
 python manage.py migrate
 python manage.py createsuperuser
@@ -217,9 +261,11 @@ pre-commit install
 
 # Run tests
 {test_command}  # pytest or python test_manage.py test depending on test_framework
+```
 
-# If sandbox was included:
-# Run the sandbox site
+**If sandbox was included, also tell the user:**
+```bash
+# To run the sandbox development server:
 cd sandbox
 python manage.py migrate
 python manage.py createsuperuser
