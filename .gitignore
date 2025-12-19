@@ -1,0 +1,17 @@
+# Ignore everything by default
+*
+
+# But keep the skill files
+!.claude/
+!.claude/**
+
+# Except local settings
+.claude/settings.local.json
+
+# Keep the documentation
+!claude_code_skill.md
+!readme.md
+!README.md
+
+# Keep this gitignore
+!.gitignore
