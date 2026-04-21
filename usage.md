@@ -2,15 +2,48 @@
 
 ## Quick Install
 
-The `skills` folder is already installed in this project. Verify the structure looks like:
+Install the skill into the project-local skill directory for your coding agent.
+
+For Codex:
+
+```bash
+curl -sSL https://raw.githubusercontent.com/nm-packages/wagtail-package-scaffold/main/install.sh | bash -s -- --agent codex
+```
+
+For Claude Code:
+
+```bash
+curl -sSL https://raw.githubusercontent.com/nm-packages/wagtail-package-scaffold/main/install.sh | bash -s -- --agent claude
+```
+
+To install into a specific target folder:
+
+```bash
+curl -sSL https://raw.githubusercontent.com/nm-packages/wagtail-package-scaffold/main/install.sh | bash -s -- --agent codex --target ./my-new-package
+```
+
+For Codex, verify the structure looks like:
 
 ```text
 your-project/
-└── skills/
-    └── wagtail-package-scaffolder/
-        ├── SKILL.md
-        └── references/
-            └── file-templates.md
+└── .codex/
+    └── skills/
+        └── wagtail-package-scaffolder/
+            ├── SKILL.md
+            └── references/
+                └── file-templates.md
+```
+
+For Claude Code, verify the structure looks like:
+
+```text
+your-project/
+└── .claude/
+    └── skills/
+        └── wagtail-package-scaffolder/
+            ├── SKILL.md
+            └── references/
+                └── file-templates.md
 ```
 
 Use it by asking your coding agent:
@@ -23,24 +56,37 @@ Depending on your prompt content, the agent will guide you through the full proc
 
 ## Manual Install
 
-If you prefer, copy the files manually:
+If you prefer, copy the files manually into your agent's project-local skill directory.
+
+For Codex:
 
 ```bash
 # From your project root
-mkdir -p skills/wagtail-package-scaffolder/references
+mkdir -p .codex/skills/wagtail-package-scaffolder/references
 
 # Copy the files, adjusting source paths as needed
-cp SKILL.md skills/wagtail-package-scaffolder/
-cp file-templates.md skills/wagtail-package-scaffolder/references/
+cp SKILL.md .codex/skills/wagtail-package-scaffolder/
+cp file-templates.md .codex/skills/wagtail-package-scaffolder/references/
 ```
 
-For tools that require a vendor-specific skill directory, copy `skills/wagtail-package-scaffolder/` into that tool's expected skill location.
+For Claude Code:
+
+```bash
+# From your project root
+mkdir -p .claude/skills/wagtail-package-scaffolder/references
+
+# Copy the files, adjusting source paths as needed
+cp SKILL.md .claude/skills/wagtail-package-scaffolder/
+cp file-templates.md .claude/skills/wagtail-package-scaffolder/references/
+```
 
 ## How It Works
 
 When you ask an agent to scaffold a Wagtail package, it will:
 
-1. **Read the skill** from the `skills/wagtail-package-scaffolder/` directory
+1. **Read the skill** from the project-local skill directory:
+   - Codex: `.codex/skills/wagtail-package-scaffolder/`
+   - Claude Code: `.claude/skills/wagtail-package-scaffolder/`
 2. **Read SKILL.md** for the workflow
 3. **Fetch current version compatibility** from official Wagtail sources:
    - Release schedule from GitHub wiki
@@ -119,7 +165,7 @@ The skill creates a complete, production-ready package:
 
 ## Customizing
 
-Edit the files in `skills/wagtail-package-scaffolder/` to:
+Edit the installed files in `.codex/skills/wagtail-package-scaffolder/` or `.claude/skills/wagtail-package-scaffolder/` to:
 
 - Add your default author info to prompts
 - Modify file templates
@@ -135,6 +181,6 @@ Version requirements are fetched dynamically from official Wagtail sources at ge
 
 ## Learn More
 
-- Skill configuration: `skills/wagtail-package-scaffolder/SKILL.md`
-- File templates: `skills/wagtail-package-scaffolder/references/file-templates.md`
+- Skill configuration: `.codex/skills/wagtail-package-scaffolder/SKILL.md` or `.claude/skills/wagtail-package-scaffolder/SKILL.md`
+- File templates: `.codex/skills/wagtail-package-scaffolder/references/file-templates.md` or `.claude/skills/wagtail-package-scaffolder/references/file-templates.md`
 - Wagtail docs: https://docs.wagtail.org

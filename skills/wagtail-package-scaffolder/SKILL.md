@@ -12,8 +12,12 @@ Generate production-ready Wagtail packages following current best practices (202
 When the user wants to scaffold a Wagtail package:
 
 1. **GUARDRAIL CHECK**: Verify the directory is clean before proceeding
-   - Check if any files exist besides: `skills/`, `install.sh`, `usage.md`, `readme.md` (case-insensitive)
-   - If other files exist, abort with an error message: "The directory contains existing files. This skill only works in a clean directory with just the skills folder and optional readme.md/usage.md/install.sh files. Please run this skill in an empty directory or a new subdirectory."
+   - Check if any files exist besides agent skill directories and optional installer docs:
+     - `.codex/skills/wagtail-package-scaffolder/`
+     - `.claude/skills/wagtail-package-scaffolder/`
+     - `skills/wagtail-package-scaffolder/` for legacy/manual installs
+     - `install.sh`, `usage.md`, `readme.md` (case-insensitive)
+   - If other files exist, abort with an error message: "The directory contains existing files. This skill only works in a clean directory with just the installed scaffolding skill and optional readme.md/usage.md/install.sh files. Please run this skill in an empty directory or a new subdirectory."
    - Only proceed if the directory is clean
 
 2. **FETCH VERSION COMPATIBILITY**: Query official Wagtail sources for current version support (see **Dynamic Version Detection** section below)
@@ -501,14 +505,20 @@ After providing all post-generation instructions, inform the user about cleanup:
 
 Tell the user:
 "Now that your package is scaffolded, the following files/folders are no longer needed for developing or using the package:
-- `skills/wagtail-package-scaffolder/` - Contains the scaffolding skill (no longer needed)
+- The installed scaffolding skill directory (no longer needed):
+  - `.codex/skills/wagtail-package-scaffolder/` if using Codex
+  - `.claude/skills/wagtail-package-scaffolder/` if using Claude Code
+  - `skills/wagtail-package-scaffolder/` if using the legacy/manual layout
 - `usage.md` - Skill usage instructions (no longer needed)
 - `install.sh` - Skill installation script (no longer needed)
 
 Would you like me to remove these files to keep your package clean?"
 
 If the user agrees (answers yes):
-1. Remove the `skills/wagtail-package-scaffolder/` directory and all its contents
+1. Remove the installed scaffolding skill directory and all its contents:
+   - Codex: `.codex/skills/wagtail-package-scaffolder/`
+   - Claude Code: `.claude/skills/wagtail-package-scaffolder/`
+   - Legacy/manual: `skills/wagtail-package-scaffolder/`
 2. Remove `usage.md` and `install.sh` if they exist
 3. Confirm the removal with a brief message
 
@@ -516,6 +526,8 @@ If the user declines:
 1. Acknowledge their choice
 2. Remind them they can manually delete these files anytime with:
    ```bash
+   rm -rf .codex/skills/wagtail-package-scaffolder
+   rm -rf .claude/skills/wagtail-package-scaffolder
    rm -rf skills/wagtail-package-scaffolder
    rm -f usage.md install.sh
    ```

@@ -17,10 +17,24 @@ An agent-agnostic scaffolding skill that generates production-ready Wagtail pack
 curl https://raw.githubusercontent.com/nm-packages/wagtail-package-scaffold/main/install.sh | less
 ```
 
-In your new empty folder where you want to generate a package:
+In your new empty folder where you want to generate a package, install the skill for your coding agent.
+
+For Codex:
 
 ```bash
-curl -sSL https://raw.githubusercontent.com/nm-packages/wagtail-package-scaffold/main/install.sh | bash
+curl -sSL https://raw.githubusercontent.com/nm-packages/wagtail-package-scaffold/main/install.sh | bash -s -- --agent codex
+```
+
+For Claude Code:
+
+```bash
+curl -sSL https://raw.githubusercontent.com/nm-packages/wagtail-package-scaffold/main/install.sh | bash -s -- --agent claude
+```
+
+To install into a specific target folder:
+
+```bash
+curl -sSL https://raw.githubusercontent.com/nm-packages/wagtail-package-scaffold/main/install.sh | bash -s -- --agent codex --target ./my-new-package
 ```
 
 Once installed, ask your coding agent:
@@ -28,7 +42,12 @@ Once installed, ask your coding agent:
 Create a Wagtail package called wagtail-hello-world
 ```
 
-The canonical skill is installed at `skills/wagtail-package-scaffolder/`. It can be used by any coding agent that can read local Markdown instructions, bundled references, and write files in the target workspace.
+The skill is installed into the project-local skill directory for your agent:
+
+- Codex: `.codex/skills/wagtail-package-scaffolder/`
+- Claude Code: `.claude/skills/wagtail-package-scaffolder/`
+
+The skill can be removed after it generates the package files.
 
 ## Usage
 
