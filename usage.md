@@ -92,8 +92,8 @@ When you ask an agent to scaffold a Wagtail package, it will:
    - Release schedule from GitHub wiki
    - Compatibility matrix from Wagtail docs
    - Determines supported Wagtail, Django, and Python versions
-4. **Display detected versions** and allow you to confirm or customize
-5. **Ask you for package details** (name, description, author, etc.)
+4. **Display detected versions** and ask whether to use the recommended defaults or customize them
+5. **Ask for each missing package value one at a time**, always showing a default answer
 6. **Read the templates** from `references/file-templates.md`
 7. **Generate all files dynamically** with:
    - Your values substituted
@@ -125,17 +125,58 @@ Recommended Defaults:
   - Minimum Python: [oldest supported by LTS Wagtail]
 
 Would you like to:
-[1] Use recommended defaults
+[1] Use recommended defaults (default)
 [2] Specify custom version constraints
 
 You: 1
 
-Agent: Great! Now I need a few more details:
-- Description: AI-powered assistant for Wagtail CMS
-- Author name: Jane Developer
-- Author email: jane@example.com
-- GitHub username: janedeveloper
-...
+Agent: Description [default: A reusable Wagtail package]?
+
+You: AI-powered assistant for Wagtail CMS
+
+Agent: Author name [default: Jane Developer]?
+
+You: use default
+
+Agent: Author email [default: jane@example.com]?
+
+You: jane@example.com
+
+Agent: GitHub username [default: janedeveloper]?
+
+You: janedeveloper
+
+Agent: License [default: MIT]?
+
+You: use default
+
+Agent: Output location [default: current directory]?
+
+You: use default
+
+Agent: Test framework [default: pytest]?
+
+You: use default
+
+Agent: Include a sandbox development site [default: yes]?
+
+You: use default
+
+Agent: Include Wagtail admin integration [default: yes]?
+
+You: use default
+
+Agent: Include example models [default: yes]?
+
+You: use default
+
+Agent: Include StreamField blocks [default: no]?
+
+You: use default
+
+Agent: Include REST API endpoints [default: no]?
+
+You: use default
 
 [The agent generates all files with current version data]
 ```

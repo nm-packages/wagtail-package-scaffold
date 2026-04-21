@@ -54,7 +54,7 @@ The skill can be removed after it generates the package files.
 The skill will:
 1. Fetch current Wagtail version compatibility
 2. Show you detected versions and defaults
-3. Ask for package details (name, description, author, etc.)
+3. Ask for each missing package value one at a time, always showing a default answer
 4. Generate all files with proper version support
 
 ## Requirements

@@ -25,17 +25,59 @@ When the user wants to scaffold a Wagtail package:
    - Display detected versions to user
    - Allow user to confirm defaults or specify custom constraints
 
-3. Ask if they want to create files in the current directory (default) or in a `{package_name}/` subdirectory
-4. Ask which test framework they prefer: pytest (default) or unittest
-5. Ask if they want to include a sandbox development site (default: yes)
-6. Gather required variables (see **Input Variables** below)
-7. Generate all files using the structures in `references/file-templates.md`
-8. Follow the **Generation Workflow** for proper file creation order
+3. **COLLECT INPUTS ONE QUESTION AT A TIME**: Follow the **One-Question Interaction Flow** below
+4. Generate all files using the structures in `references/file-templates.md`
+5. Follow the **Generation Workflow** for proper file creation order
 
 **Default behavior**:
 - Generate all files in the current working directory unless user requests a subdirectory
 - Use pytest for testing unless user prefers unittest
 - Include sandbox development site unless user opts out
+
+## One-Question Interaction Flow
+
+**IMPORTANT**: Ask exactly one unresolved question per message. Do not batch multiple unanswered fields into one prompt, checklist, table, or bullet list. This applies to every user-facing decision, including version constraints, package metadata, feature choices, output location, sandbox choice, and cleanup confirmation.
+
+Every question must include a concrete default in the wording. For example: `Package name [default: wagtail-example-package]?`
+
+For multiple-choice questions:
+- Put the default or recommended option first
+- Label it as the default or recommended option
+- Ask only that one decision in the message
+
+For free-text questions:
+- Ask for one value only
+- Show the default in the prompt
+- Accept a provided value, an empty/implicit confirmation if the agent interface supports it, or an explicit response such as "use default"
+
+If the user already supplied a value in their initial request, skip only that specific question and continue asking the remaining unresolved questions one at a time.
+
+Ask questions in this exact order:
+
+1. Version defaults or custom constraints
+2. Package name
+3. Description
+4. Author name
+5. Author email
+6. GitHub username
+7. License
+8. Output location
+9. Test framework
+10. Sandbox site
+11. Optional feature flags, asked separately in this order: admin integration, example models, StreamField blocks, REST API endpoints
+12. Cleanup confirmation after generation
+
+Default derivation rules:
+- `package_name`: use the sanitized current directory name if it is a valid PyPI-style package name; otherwise use `wagtail-example-package`
+- `description`: `A reusable Wagtail package`
+- `author_name`: `git config user.name`; if unavailable, use `Your Name`
+- `author_email`: `git config user.email`; if unavailable, use `you@example.com`
+- `github_username`: use the Git remote owner if detectable; otherwise use a slugified `author_name`; otherwise use `your-github-username`
+- `license`: `MIT`
+- `create_subdirectory`: `false` (generate in the current directory)
+- `test_framework`: `pytest`
+- `include_sandbox`: `true`
+- Optional feature flags: `include_admin=true`, `include_models=true`, `include_blocks=false`, `include_api=false`
 
 ## Input Variables
 
@@ -215,15 +257,15 @@ Recommended Defaults:
   - Documentation requirements
 
 Would you like to:
-[1] Use recommended defaults
+[1] Use recommended defaults (default)
 [2] Specify custom version constraints
 ```
 
 **If user chooses option 1**: Proceed with the detected defaults
 
 **If user chooses option 2**:
-- Prompt for custom `wagtail_min`, `django_min`, `python_min`
-- Validate against the compatibility matrix
+- Prompt for custom `wagtail_min`, then `django_min`, then `python_min`, asking only one version question per message and showing the detected default for each
+- Validate each answer against the compatibility matrix before asking the next version question
 - Warn if specified versions are incompatible or not currently supported
 - Update the defaults in version_data
 
@@ -512,7 +554,7 @@ Tell the user:
 - `usage.md` - Skill usage instructions (no longer needed)
 - `install.sh` - Skill installation script (no longer needed)
 
-Would you like me to remove these files to keep your package clean?"
+Would you like me to remove these files to keep your package clean [default: no]?"
 
 If the user agrees (answers yes):
 1. Remove the installed scaffolding skill directory and all its contents:
