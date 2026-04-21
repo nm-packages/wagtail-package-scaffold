@@ -64,7 +64,7 @@ For Codex:
 # From your project root
 mkdir -p .codex/skills/wagtail-package-scaffolder/references
 
-# Copy the files, adjusting source paths as needed
+# Copy the files from this repository checkout
 cp SKILL.md .codex/skills/wagtail-package-scaffolder/
 cp file-templates.md .codex/skills/wagtail-package-scaffolder/references/
 ```
@@ -75,7 +75,7 @@ For Claude Code:
 # From your project root
 mkdir -p .claude/skills/wagtail-package-scaffolder/references
 
-# Copy the files, adjusting source paths as needed
+# Copy the files from this repository checkout
 cp SKILL.md .claude/skills/wagtail-package-scaffolder/
 cp file-templates.md .claude/skills/wagtail-package-scaffolder/references/
 ```
@@ -92,14 +92,17 @@ When you ask an agent to scaffold a Wagtail package, it will:
    - Release schedule from GitHub wiki
    - Compatibility matrix from Wagtail docs
    - Determines supported Wagtail, Django, and Python versions
-4. **Display detected versions** and ask whether to use the recommended defaults or customize them
+4. **Display detected versions** and ask whether to use the recommended defaults or override them
 5. **Ask for each missing package value one at a time**, always showing a default answer
 6. **Read the templates** from `references/file-templates.md`
-7. **Generate all files dynamically** with:
+7. **Generate all files** with:
    - Your values substituted
    - Current version compatibility in dependencies
+   - Deterministic ordering and normalized formatting
    - Test matrices for all supported version combinations
-   - Appropriate classifiers for PyPI
+   - Stable PyPI classifiers
+
+For identical user inputs, identical fetched version data, the same current date, and the same selected options, the generated file tree is intended to be byte-for-byte stable.
 
 ## Example Usage
 
@@ -187,7 +190,7 @@ The skill creates a complete, production-ready package:
 
 ### Package Structure
 
-- `pyproject.toml` - Modern Python packaging with dynamic version classifiers
+- `pyproject.toml` - Modern Python packaging with live version classifiers rendered in stable order
 - `src/{module_name}/` - Source code in src layout
 - `tests/` - Test infrastructure (pytest or unittest)
 - `sandbox/` - Full Wagtail development site (optional)
@@ -213,7 +216,9 @@ Edit the installed files in `.codex/skills/wagtail-package-scaffolder/` or `.cla
 - Add/remove generated files
 - Change project structure
 
-Version requirements are fetched dynamically from official Wagtail sources at generation time. This ensures generated packages always support current Wagtail versions without manual updates to the skill.
+Version requirements are fetched live from official Wagtail sources at generation time. This ensures generated packages always support current Wagtail versions without manual updates to the skill.
+
+Rendering is deterministic after version data is fetched: lists are sorted numerically, test matrices use stable ordering, generated files use LF line endings, and unresolved template markers must be removed before completion.
 
 ## Requirements
 

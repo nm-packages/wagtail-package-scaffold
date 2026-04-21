@@ -34,6 +34,20 @@ When the user wants to scaffold a Wagtail package:
 - Use pytest for testing unless user prefers unittest
 - Include sandbox development site unless user opts out
 
+## Deterministic Generation Contract
+
+This skill fetches live Wagtail compatibility data, but rendering MUST be deterministic after the data is fetched.
+
+For the same user inputs, same system date, same fetched `version_data`, and same selected options, the generated file tree MUST be byte-for-byte identical. To preserve this:
+
+- Use the system date as `YYYY-MM-DD` only. Do not render localized month names in generated files.
+- Normalize all version lists with numeric ascending sort before calculating defaults, matrices, classifiers, documentation, and display output.
+- Normalize all generated text to LF line endings with exactly one final newline per file.
+- Generate files in the exact order listed in **Generation Workflow**.
+- Do not leave unresolved placeholders or renderer instructions in generated files. Generated files MUST NOT contain `CONDITIONAL`, `DYNAMIC`, `<DYNAMIC>`, `Pseudo-code`, `pseudo-code`, or unresolved `{variable}` placeholders.
+- Abort instead of guessing when required version fields, required user inputs, or required template values are missing after defaults are applied.
+- Preserve the exact section order, key order, array order, and dependency order defined in `references/file-templates.md`.
+
 ## One-Question Interaction Flow
 
 **IMPORTANT**: Ask exactly one unresolved question per message. Do not batch multiple unanswered fields into one prompt, checklist, table, or bullet list. This applies to every user-facing decision, including version constraints, package metadata, feature choices, output location, sandbox choice, and cleanup confirmation.
@@ -68,7 +82,7 @@ Ask questions in this exact order:
 12. Cleanup confirmation after generation
 
 Default derivation rules:
-- `package_name`: use the sanitized current directory name if it is a valid PyPI-style package name; otherwise use `wagtail-example-package`
+- `package_name`: lowercase the current directory basename, replace spaces and underscores with hyphens, remove characters other than `a-z`, `0-9`, and `-`, collapse repeated hyphens, trim leading/trailing hyphens, and use it only if it matches `^[a-z0-9]+(-[a-z0-9]+)*$`; otherwise use `wagtail-example-package`
 - `description`: `A reusable Wagtail package`
 - `author_name`: `git config user.name`; if unavailable, use `Your Name`
 - `author_email`: `git config user.email`; if unavailable, use `you@example.com`
@@ -78,6 +92,17 @@ Default derivation rules:
 - `test_framework`: `pytest`
 - `include_sandbox`: `true`
 - Optional feature flags: `include_admin=true`, `include_models=true`, `include_blocks=false`, `include_api=false`
+
+Input normalization rules:
+- Treat an empty answer, `default`, or `use default` as the displayed default for that single question.
+- Normalize boolean answers as true for `yes`, `y`, `true`, `1`, `include`, and false for `no`, `n`, `false`, `0`, `skip`.
+- `module_name`: replace hyphens in `package_name` with underscores. Abort if the result is not a valid Python identifier or is a Python reserved word.
+- `module_name_camel`: split `module_name` on underscores, capitalize each part, and concatenate.
+- `module_name_upper`: uppercase `module_name`.
+- `package_title`: split `package_name` on hyphens, capitalize each word, and join with single spaces.
+- `author_email`: accept only a single email-like value containing one `@` and at least one dot after `@`; otherwise ask again.
+- `github_username`: trim whitespace, strip a leading `@`, and accept only `^[A-Za-z0-9-]+$`; otherwise ask again.
+- `license`: render only the exact supplied value; the built-in template is deterministic for `MIT`.
 
 ## Input Variables
 
@@ -107,22 +132,33 @@ Collect these from the user before generating:
 
 **IMPORTANT**: Execute these steps before collecting user input to ensure current version compatibility data.
 
+Use this fixed source order and error behavior:
+
+1. Fetch `https://github.com/wagtail/wagtail/wiki/Release-schedule`.
+2. Fetch `https://docs.wagtail.org/en/stable/releases/upgrading.html`.
+3. Use a 20 second timeout per source when the execution environment supports timeouts.
+4. If either source cannot be fetched, parsed, or validated, abort with the error message in **Step 6**. Do not continue with cached, remembered, or estimated data.
+
+Version strings MUST use `major.minor` format. Sort versions numerically by `(major, minor)`, not lexicographically.
+
 ### Step 1: Fetch Wagtail Release Schedule
 
 Use the agent's available web/documentation retrieval tool or HTTP client to retrieve the current release schedule:
 
 - **URL**: https://github.com/wagtail/wagtail/wiki/Release-schedule
-- **Prompt**: "Extract the release schedule table showing Version, Release Date, and Security Support end dates. Return as a JSON array with fields: version (string), is_lts (boolean), support_end (date in YYYY-MM-DD format). Only include versions where the Release Date is today or earlier, using the current system date."
+- **Prompt**: "Extract the release schedule table showing Version, Release Date, and Security Support end dates. Return as a JSON array with fields: version (string), is_lts (boolean), release_date (date in YYYY-MM-DD format), support_end (date in YYYY-MM-DD format). Only include rows that have all four fields."
 - Parse the response into structured data
-- Filter to keep only versions where `support_end >= today's date`
+- Use the current system date as `YYYY-MM-DD`
+- Filter to keep only versions where `release_date <= current_date` and `support_end >= current_date`
+- Sort retained rows by numeric version ascending
 
-**Expected output format**:
+**Example output format**:
 ```json
 {
   "versions": [
-    {"version": "7.2", "is_lts": false, "support_end": "2026-05-04"},
-    {"version": "7.1", "is_lts": false, "support_end": "2026-02-02"},
-    {"version": "7.0", "is_lts": true, "support_end": "2026-11-02"}
+    {"version": "7.0", "is_lts": true, "release_date": "2025-05-07", "support_end": "2026-11-02"},
+    {"version": "7.1", "is_lts": false, "release_date": "2025-08-06", "support_end": "2026-08-02"},
+    {"version": "7.2", "is_lts": false, "release_date": "2025-11-05", "support_end": "2026-11-02"}
   ]
 }
 ```
@@ -134,33 +170,30 @@ Use the agent's available web/documentation retrieval tool or HTTP client to ret
 - **URL**: https://docs.wagtail.org/en/stable/releases/upgrading.html
 - **Prompt**: "Extract the compatibility matrix table showing which Django and Python versions are supported by each Wagtail version. Return as JSON object where keys are Wagtail versions (as strings like '7.0', '7.1', etc.) and values contain arrays of Django versions and Python versions supported by that Wagtail version."
 - Parse the response into structured data
+- Keep only versions retained from Step 1
+- Sort every `django` and `python` array numerically ascending
 
-**Expected output format**:
+**Example output format**:
 ```json
 {
-  "7.2": {
+  "7.0": {
     "django": ["4.2", "5.1", "5.2"],
-    "python": ["3.10", "3.11", "3.12", "3.13", "3.14"]
+    "python": ["3.9", "3.10", "3.11", "3.12", "3.13"]
   },
   "7.1": {
     "django": ["4.2", "5.1", "5.2"],
     "python": ["3.9", "3.10", "3.11", "3.12", "3.13"]
   },
-  "7.0": {
+  "7.2": {
     "django": ["4.2", "5.1", "5.2"],
-    "python": ["3.9", "3.10", "3.11", "3.12", "3.13"]
+    "python": ["3.10", "3.11", "3.12", "3.13", "3.14"]
   }
 }
 ```
 
 ### Step 3: Build Complete Version Data Structure
 
-Merge the fetched data from Steps 1 and 2 into a unified structure:
-
-1. Take the currently supported Wagtail versions from Step 1
-2. For each version, add its Django and Python compatibility from Step 2
-3. Build lists of all unique Django and Python versions across all supported Wagtail versions
-4. Structure the data as follows:
+Merge the fetched data from Steps 1 and 2 into this exact schema. Abort if any retained Wagtail version is missing compatibility data, if any arrays are empty, or if no supported LTS version remains.
 
 ```json
 {
@@ -168,6 +201,7 @@ Merge the fetched data from Steps 1 and 2 into a unified structure:
     {
       "version": "7.0",
       "is_lts": true,
+      "release_date": "2025-05-07",
       "support_end": "2026-11-02",
       "django_versions": ["4.2", "5.1", "5.2"],
       "python_versions": ["3.9", "3.10", "3.11", "3.12", "3.13"]
@@ -175,14 +209,16 @@ Merge the fetched data from Steps 1 and 2 into a unified structure:
     {
       "version": "7.1",
       "is_lts": false,
-      "support_end": "2026-02-02",
+      "release_date": "2025-08-06",
+      "support_end": "2026-08-02",
       "django_versions": ["4.2", "5.1", "5.2"],
       "python_versions": ["3.9", "3.10", "3.11", "3.12", "3.13"]
     },
     {
       "version": "7.2",
       "is_lts": false,
-      "support_end": "2026-05-04",
+      "release_date": "2025-11-05",
+      "support_end": "2026-11-02",
       "django_versions": ["4.2", "5.1", "5.2"],
       "python_versions": ["3.10", "3.11", "3.12", "3.13", "3.14"]
     }
@@ -193,28 +229,33 @@ Merge the fetched data from Steps 1 and 2 into a unified structure:
     "wagtail_min": "7.0",
     "django_min": "4.2",
     "python_min": "3.9"
-  }
+  },
+  "exclusions": []
 }
 ```
 
 **Logic for calculating defaults**:
-- `wagtail_min`: Select the **oldest LTS version** from the supported versions list
-- `django_min`: Select the minimum Django version supported by the chosen `wagtail_min`
-- `python_min`: Select the minimum Python version supported by the chosen `wagtail_min`
+- `wagtail_min`: first LTS item in `supported_wagtail_versions` after numeric ascending sort
+- `django_min`: first item in that Wagtail version's `django_versions`
+- `python_min`: first item in that Wagtail version's `python_versions`
+- `all_django_versions`: unique union of all `django_versions`, sorted numerically ascending
+- `all_python_versions`: unique union of all `python_versions`, sorted numerically ascending
 
 ### Step 4: Generate Exclusion Rules
 
-Based on the version_data structure, generate exclusion rules for incompatible version combinations:
+Generate exclusions deterministically from compatibility data and documented Django/Python constraints. Sort exclusions by `python`, then `django`, then `wagtail`, numerically ascending. Each exclusion MUST have exactly one of `django` or `wagtail`.
 
-**Known incompatibilities to check**:
-1. **Django-Python incompatibilities**:
-   - Django 4.2 only supports Python up to 3.12 (exclude 3.13, 3.14)
-   - Django 5.1 may not support Python 3.14 (check compatibility matrix)
+Rules:
+1. For each Python in `all_python_versions` and Django in `all_django_versions`, add an exclusion when the Django release does not support that Python release according to Django's supported Python version documentation.
+2. For each Python in `all_python_versions` and Wagtail in `supported_wagtail_versions`, add an exclusion when the Wagtail row's `python_versions` does not include that Python.
+3. Do not add Django/Wagtail cross-product exclusions unless they are present in official compatibility data.
 
-2. **Wagtail-Python incompatibilities**:
-   - Check each Wagtail version's Python support
-   - If a Python version is supported by newer Wagtail but not older, add exclusion
-   - Example: Python 3.14 is only in Wagtail 7.2+, so exclude with 7.0 and 7.1
+Documented Django/Python constraints to apply:
+- Django 4.2 supports Python 3.8 through 3.12.
+- Django 5.0 supports Python 3.10 through 3.12.
+- Django 5.1 supports Python 3.10 through 3.13.
+- Django 5.2 supports Python 3.10 through 3.14.
+- For newer Django versions not listed here, fetch and validate the official Django supported Python versions before adding that Django version. Abort if the constraint cannot be verified.
 
 **Generate exclusions array**:
 ```json
@@ -235,22 +276,22 @@ Add this to the version_data structure.
 Show a clear summary of the detected versions with the option to override:
 
 ```
-📊 Wagtail Version Compatibility Detected
+Wagtail Version Compatibility Detected
 
 Currently Supported Wagtail Versions:
-  • 7.2 (latest) - supported until May 4, 2026
-  • 7.1 - supported until February 2, 2026
-  • 7.0 LTS (recommended) - supported until November 2, 2026
+  - 7.0 LTS (recommended) - supported until 2026-11-02
+  - 7.1 - supported until 2026-08-02
+  - 7.2 (latest) - supported until 2026-11-02
 
-Django Versions: 4.2 (LTS), 5.1, 5.2
+Django Versions: 4.2, 5.1, 5.2
 Python Versions: 3.9, 3.10, 3.11, 3.12, 3.13, 3.14
 
 Recommended Defaults:
-  • Minimum Wagtail: 7.0 (oldest LTS for long-term stability)
-  • Minimum Django: 4.2 (LTS)
-  • Minimum Python: 3.9 (oldest supported by Wagtail 7.0)
+  - Minimum Wagtail: 7.0
+  - Minimum Django: 4.2
+  - Minimum Python: 3.9
 
-ℹ️ These versions will be used in:
+These versions will be used in:
   - pyproject.toml dependencies and classifiers
   - tox.ini test matrix (all compatible combinations)
   - GitHub Actions CI (testing across versions)
@@ -273,7 +314,7 @@ Would you like to:
 
 **If version data retrieval fails** (network error, timeout, rate limiting):
 ```
-❌ Unable to fetch current version data from official Wagtail sources.
+Unable to fetch current version data from official Wagtail sources.
 Error: {error_message}
 
 Cannot proceed with package generation without current version compatibility data.
@@ -292,7 +333,7 @@ Package generation has been aborted.
 
 **If parsing fails** (unexpected page format):
 ```
-❌ Successfully fetched data but unable to parse version compatibility information.
+Successfully fetched data but unable to parse version compatibility information.
 The page format may have changed since this skill was last updated.
 
 Cannot proceed with package generation without accurate version data.
@@ -316,12 +357,12 @@ Package generation has been aborted.
 
 **IMPORTANT**:
 - By default, generate all files in the **current working directory**. Only create a subdirectory if `create_subdirectory` is `true`.
-- **Version-dependent content is GENERATED DYNAMICALLY** based on the fetched version_data structure from the Dynamic Version Detection section.
-- For files with "DYNAMIC GENERATION" comments in the templates, follow the generation algorithms provided in `references/file-templates.md`.
-- Simple variables (package_name, author_name, etc.) use standard `{variable}` substitution.
-- Complex version content (classifiers, tox envlist, GitHub Actions matrix) requires programmatic generation during file creation.
-- When generating files with conditional sections (marked with `# CONDITIONAL:`), only include the sections that match the user's `test_framework` choice.
+- Render version-dependent content from the fetched `version_data` structure using the canonical algorithms in `references/file-templates.md`.
+- Simple variables (package_name, author_name, etc.) use exact placeholder substitution.
+- Complex version content (classifiers, tox envlist, GitHub Actions matrix) must be generated before writing the target file.
+- For test-framework alternatives, render only the selected alternative. Do not write unused alternatives into generated files.
 - If `include_sandbox` is `false`, skip the entire sandbox generation section (section 2) and omit sandbox-related commands from the Makefile (sandbox, migrate, superuser targets).
+- Before reporting completion, scan generated files and abort with a clear error if any unresolved placeholder or renderer instruction remains.
 
 Generate files in this order:
 
@@ -355,9 +396,9 @@ To generate the sandbox:
    source .venv-temp/bin/activate  # or .venv-temp\Scripts\activate on Windows
    ```
 
-2. **Install Wagtail** in the temporary environment:
+2. **Install the selected Wagtail minor version** in the temporary environment. Use `version_data.defaults.wagtail_min` after any user override, and pin the install to that minor release:
    ```bash
-   pip install wagtail
+   pip install "wagtail>={wagtail_min},<{wagtail_next_minor}"
    ```
 
 3. **Run the wagtail start command**:
@@ -396,7 +437,12 @@ After running `wagtail start sandbox`, you MUST make the following modifications
      - Remove the now-empty `settings/` directory
    - Ensure `DEBUG = True` is set in the settings file for easy development
 
-3. **Update the settings file** (`sandbox/sandbox/settings.py`) to integrate the package:
+3. **Normalize generated sandbox files before editing**:
+   - Use LF line endings and one final newline per file.
+   - Keep generated imports sorted in the exact order shown in `references/file-templates.md`.
+   - Remove timestamped, machine-specific, or environment-specific comments if the generator produced any.
+
+4. **Update the settings file** (`sandbox/sandbox/settings.py`) to integrate the package:
 
    a. Add the src directory to the Python path (add after the BASE_DIR/PROJECT_DIR definitions):
    ```python
@@ -439,7 +485,7 @@ src/{module_name}/
 ```
 tests/
 ├── __init__.py
-├── conftest.py             # pytest fixtures
+├── conftest.py             # pytest fixtures (only if test_framework is pytest)
 ├── settings.py             # Django test settings
 ├── test_models.py          # Placeholder model tests
 └── urls.py                 # Test URL config
@@ -477,7 +523,7 @@ This skill follows 2024-2025 best practices:
 
 ## Version Compatibility
 
-Version compatibility is **dynamically detected** at generation time by fetching current data from official Wagtail sources:
+Version compatibility is **detected live** at generation time by fetching current data from official Wagtail sources:
 
 - **Release Schedule**: https://github.com/wagtail/wagtail/wiki/Release-schedule
 - **Compatibility Matrix**: https://docs.wagtail.org/en/stable/releases/upgrading.html
@@ -485,7 +531,7 @@ Version compatibility is **dynamically detected** at generation time by fetching
 The skill automatically:
 1. Fetches currently supported Wagtail versions
 2. Determines compatible Django and Python versions
-3. Generates appropriate exclusion rules for test matrices
+3. Generates validated exclusion rules for test matrices
 4. Uses the oldest LTS version as the default minimum
 
 **Note**: Version data is always fetched fresh at generation time to ensure packages support current versions. If version data cannot be fetched, package generation will abort with an error message.
@@ -574,9 +620,9 @@ If the user declines:
    rm -f usage.md install.sh
    ```
 
-## Customization Points
+## Post-Generation Edit Points
 
-Tell the user where to customize:
+Tell the user where to edit next:
 
 1. **Add models**: `src/{module_name}/models.py` (empty placeholder ready for your models)
 2. **Add views**: `src/{module_name}/views.py` (empty placeholder ready for your views)

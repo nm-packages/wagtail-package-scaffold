@@ -1,10 +1,11 @@
 # Wagtail Package Scaffolder
 
-An agent-agnostic scaffolding skill that generates production-ready Wagtail packages with dynamic version detection.
+An agent-agnostic scaffolding skill that generates production-ready Wagtail packages with live version detection and deterministic rendering.
 
 ## Features
 
-- **Dynamic version detection** - Automatically fetches current Wagtail/Django/Python compatibility from official sources
+- **Live version detection** - Automatically fetches current Wagtail/Django/Python compatibility from official sources
+- **Deterministic rendering** - Produces stable output for identical inputs, fetched version data, current date, and selected options
 - **Complete package structure** - Modern Python packaging with src layout
 - **Test matrices** - tox.ini and GitHub Actions configured for all supported version combinations
 - **Optional sandbox** - Full Wagtail development site for testing
@@ -55,7 +56,9 @@ The skill will:
 1. Fetch current Wagtail version compatibility
 2. Show you detected versions and defaults
 3. Ask for each missing package value one at a time, always showing a default answer
-4. Generate all files with proper version support
+4. Generate all files with deterministic ordering, normalized formatting, and proper version support
+
+For identical user inputs, identical fetched version data, the same current date, and the same selected options, the generated output is intended to be byte-for-byte stable.
 
 ## Requirements
 
@@ -64,7 +67,7 @@ The skill will:
 
 ## What Gets Generated
 
-- Modern `pyproject.toml` with dynamic version classifiers
+- Modern `pyproject.toml` with live version classifiers rendered in stable order
 - Complete source structure in `src/` layout
 - Test infrastructure (pytest or unittest)
 - GitHub Actions CI/CD with version matrix

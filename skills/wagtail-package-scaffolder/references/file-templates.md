@@ -2,51 +2,53 @@
 
 Complete templates for all generated files. Substitute variables using `{variable_name}` syntax.
 
-## Conditional Generation
+## Rendering Completion Checklist
 
-Many templates include conditional sections marked with comments like:
-- `# CONDITIONAL: If test_framework == "pytest"` - Include this section only if using pytest
-- `# CONDITIONAL: If test_framework == "unittest"` - Include this section only if using unittest
+Generated files MUST be complete rendered files, not partially rendered templates.
 
-When generating files, only include the sections that match the user's choices.
+Before reporting completion, scan every generated file. Generated files MUST NOT contain:
 
-### Examples:
+- `CONDITIONAL`
+- `DYNAMIC`
+- `<DYNAMIC>`
+- `Pseudo-code`
+- `pseudo-code`
+- unresolved `{variable}` placeholders
 
-**For pyproject.toml dev dependencies:**
-- If `test_framework == "pytest"`: Include pytest>=8.0, pytest-django>=4.5, pytest-cov>=4.0
-- If `test_framework == "unittest"`: Include only coverage>=7.0
+Use LF line endings and exactly one final newline per generated file.
 
-**For test files:**
-- If `test_framework == "pytest"`: Use pytest-style tests with @pytest.mark decorators
-- If `test_framework == "unittest"`: Use Django TestCase with self.assert* methods
+## Test Framework Alternatives
 
-**For Makefile/tox.ini commands:**
-- If `test_framework == "pytest"`: Use `pytest` command
-- If `test_framework == "unittest"`: Use `python -m django test --settings=tests.settings` or `coverage run -m django test`
+Render exactly one alternative:
+
+- `pytest`: include pytest, pytest-django, pytest-cov, pytest settings, pytest-style tests, and pytest commands.
+- `unittest`: include coverage, omit pytest settings, use Django `TestCase` tests, and use `python test_manage.py test` or coverage commands where specified.
 
 ---
 
-## Dynamic Version Generation
+## Version-Based Rendering
 
-Many templates include version-dependent content that must be generated dynamically based on fetched compatibility data from the version_data structure (see SKILL.md Dynamic Version Detection section).
+Render version-dependent content from the validated `version_data` structure in `SKILL.md`.
 
 ### Generation Rules
 
 **For pyproject.toml classifiers:**
 - Generate one `"Framework :: Django :: {version}"` line for each Django version in `version_data.all_django_versions`
 - Generate one `"Programming Language :: Python :: {version}"` line for each Python version in `version_data.all_python_versions`
-- Sort in ascending version order
-- Insert in the appropriate location within the classifiers array
+- Sort in numeric ascending version order
+- Insert Django classifiers immediately after `"Framework :: Django",`
+- Insert Python classifiers immediately after `"Programming Language :: Python :: 3",`
 
 **For tox.ini envlist:**
 - Generate test environment combinations for all compatible Python/Django/Wagtail versions
-- Group by Python version with descriptive comments
-- Apply exclusion rules from `version_data.exclusions` (omit incompatible combinations)
+- Group by Python version in numeric ascending order
+- Apply exclusion rules from `version_data.exclusions` and omit incompatible combinations
 - Use format: `py{X}{Y}-django{A}{B}-wagtail{C}{D}` where:
   - `{X}{Y}` = Python version without dots (e.g., "39", "310", "311")
   - `{A}{B}` = Django version without dots (e.g., "42", "51", "52")
   - `{C}{D}` = Wagtail version without dots (e.g., "70", "71", "72")
-- For multiple Wagtail versions with same Python/Django combination, use brace expansion: `wagtail{X,Y,Z}`
+- For multiple Wagtail versions with the same Python/Django combination, use brace expansion in numeric ascending order: `wagtail{70,71,72}`
+- Use exactly four spaces before each envlist item
 
 **For tox.ini deps:**
 - Generate one line per Django version: `django{AB}: Django>={A.B},<{A.B+1}`
@@ -58,92 +60,26 @@ Many templates include version-dependent content that must be generated dynamica
 - Generate `python-version` array: all Python versions from `version_data.all_python_versions`
 - Generate `django-version` array: all Django versions from `version_data.all_django_versions`
 - Generate `wagtail-version` array: all Wagtail versions from `version_data.supported_wagtail_versions` (extract version numbers)
-- Generate `exclude` array: one entry per exclusion in `version_data.exclusions`
+- Render arrays as double-quoted YAML inline arrays, e.g. `["3.10", "3.11"]`
+- Generate `exclude` array: one entry per exclusion in `version_data.exclusions`, already sorted by `python`, then `django`, then `wagtail`
   - Each exclusion has a python-version field
   - Plus either a django-version OR wagtail-version field (not both)
+- If no exclusions exist, render `exclude: []` on one line.
 
-### Generation Algorithm Examples
+### Canonical Matrix Algorithm
 
-**Example 1: Generating tox.ini envlist**
-
-```python
-# Pseudo-code for generating envlist
-envlist_lines = []
-
-for python_version in sorted(version_data.all_python_versions):
-    py_short = python_version.replace('.', '')  # "3.10" -> "310"
-
-    # Determine description
-    if python_version == version_data.defaults.python_min:
-        desc = "oldest supported"
-    elif python_version == version_data.all_python_versions[-1]:
-        desc = "latest"
-    else:
-        desc = "supported"
-
-    # Add comment
-    envlist_lines.append(f"# Python {python_version} - {desc}")
-
-    # Get valid Django versions for this Python (check exclusions)
-    valid_django = []
-    for django in version_data.all_django_versions:
-        is_excluded = any(
-            excl.get('python') == python_version and excl.get('django') == django
-            for excl in version_data.exclusions
-        )
-        if not is_excluded:
-            valid_django.append(django)
-
-    # Generate envlist lines for each Django
-    for django_version in valid_django:
-        dj_short = django_version.replace('.', '')  # "4.2" -> "42"
-
-        # Get valid Wagtail versions for this Python (check exclusions)
-        valid_wagtail = []
-        for wagtail_data in version_data.supported_wagtail_versions:
-            wagtail = wagtail_data['version']
-            is_excluded = any(
-                excl.get('python') == python_version and excl.get('wagtail') == wagtail
-                for excl in version_data.exclusions
-            )
-            if not is_excluded:
-                valid_wagtail.append(wagtail.replace('.', ''))  # "7.0" -> "70"
-
-        # Format wagtail versions
-        if len(valid_wagtail) > 1:
-            wt_str = f"{{{','.join(valid_wagtail)}}}"
-        elif len(valid_wagtail) == 1:
-            wt_str = valid_wagtail[0]
-        else:
-            continue  # Skip if no valid wagtail versions
-
-        envlist_lines.append(f"py{py_short}-django{dj_short}-wagtail{wt_str}")
-```
-
-**Example 2: Generating GitHub Actions exclusions**
-
-```python
-# Pseudo-code for generating exclusions
-exclusions = []
-
-for excl in version_data.exclusions:
-    exclusion_entry = {
-        "python-version": excl['python']
-    }
-
-    if 'django' in excl:
-        exclusion_entry['django-version'] = excl['django']
-    elif 'wagtail' in excl:
-        exclusion_entry['wagtail-version'] = excl['wagtail']
-
-    exclusions.append(exclusion_entry)
-```
+1. Iterate Python versions in `version_data.all_python_versions`.
+2. For each Python, iterate Django versions in `version_data.all_django_versions` that are not excluded for that Python.
+3. For each Python/Django pair, collect Wagtail versions from `version_data.supported_wagtail_versions` that are not excluded for that Python.
+4. Skip the Python/Django pair if no Wagtail versions remain.
+5. Render one envlist row per Python/Django pair. Use a single Wagtail short version for one value or brace expansion for multiple values.
+6. Render GitHub Actions exclusions in the same order as `version_data.exclusions`.
 
 ### Important Notes
 
 - **Always validate generated content**: Ensure YAML syntax is correct for GitHub Actions, INI syntax for tox.ini
-- **Include explanatory comments**: Add comments in generated files explaining why certain combinations are excluded
-- **Maintain readability**: Group related environments together, use consistent formatting
+- **Use stable comments**: Comments generated into files must not include source fetch times, local paths, hostnames, or transient command output
+- **Maintain readability**: Group related environments together and use consistent formatting
 - **Test coverage**: Ensure all supported version combinations are included in test matrices
 
 ---
@@ -164,45 +100,19 @@ license = {{ file = "LICENSE" }}
 authors = [
     {{ name = "{author_name}", email = "{author_email}" }}
 ]
-# DYNAMIC GENERATION: Generate classifiers from version_data
-# For each django_version in version_data.all_django_versions:
-#     Add line: "Framework :: Django :: {django_version}",
-# For each python_version in version_data.all_python_versions:
-#     Add line: "Programming Language :: Python :: {python_version}",
-#
-# Algorithm:
-# 1. Start with static classifiers (Development Status, Environment, etc.)
-# 2. Add "Framework :: Django",
-# 3. For each django_version in version_data.all_django_versions (sorted):
-#    - Add "Framework :: Django :: {django_version}",
-# 4. Add "Framework :: Wagtail" and wagtail major version classifier
-# 5. Add static classifiers (Intended Audience, License, etc.)
-# 6. Add "Programming Language :: Python" and "Programming Language :: Python :: 3",
-# 7. For each python_version in version_data.all_python_versions (sorted):
-#    - Add "Programming Language :: Python :: {python_version}",
-# 8. End with "Topic :: Internet :: WWW/HTTP :: Dynamic Content",
 classifiers = [
     "Development Status :: 3 - Alpha",
     "Environment :: Web Environment",
     "Framework :: Django",
-    # <DYNAMIC: Insert Django version classifiers here>
-    # Example: "Framework :: Django :: 4.2",
-    # Example: "Framework :: Django :: 5.1",
-    # Example: "Framework :: Django :: 5.2",
+{django_classifiers}
     "Framework :: Wagtail",
-    "Framework :: Wagtail :: {wagtail_min[0]}",
+    "Framework :: Wagtail :: {wagtail_major}",
     "Intended Audience :: Developers",
     "License :: OSI Approved :: {license} License",
     "Operating System :: OS Independent",
     "Programming Language :: Python",
     "Programming Language :: Python :: 3",
-    # <DYNAMIC: Insert Python version classifiers here>
-    # Example: "Programming Language :: Python :: 3.9",
-    # Example: "Programming Language :: Python :: 3.10",
-    # Example: "Programming Language :: Python :: 3.11",
-    # Example: "Programming Language :: Python :: 3.12",
-    # Example: "Programming Language :: Python :: 3.13",
-    # Example: "Programming Language :: Python :: 3.14",
+{python_classifiers}
     "Topic :: Internet :: WWW/HTTP :: Dynamic Content",
 ]
 requires-python = ">={python_min}"
@@ -213,12 +123,7 @@ dependencies = [
 
 [project.optional-dependencies]
 dev = [
-    # CONDITIONAL: If test_framework == "pytest", include:
-    #   "pytest>=8.0",
-    #   "pytest-django>=4.5",
-    #   "pytest-cov>=4.0",
-    # CONDITIONAL: If test_framework == "unittest", include:
-    #   "coverage>=7.0",
+{test_dependencies}
     "ruff>=0.4",
     "pre-commit>=3.5",
     "tox>=4.0",
@@ -275,18 +180,12 @@ ignore = [
 known-first-party = ["{module_name}"]
 known-third-party = ["django", "wagtail"]
 
-# CONDITIONAL: Only include if test_framework == "pytest"
-[tool.pytest.ini_options]
-DJANGO_SETTINGS_MODULE = "tests.settings"
-python_files = ["test_*.py"]
-testpaths = ["tests"]
-addopts = "-v --tb=short"
+{pytest_ini_options}
 
 [tool.coverage.run]
 source = ["src/{module_name}"]
 branch = true
-# CONDITIONAL: If test_framework == "unittest", add:
-#   command_line = "-m unittest discover -s tests -p 'test_*.py'"
+{coverage_command_line}
 
 [tool.coverage.report]
 exclude_lines = [
@@ -333,8 +232,9 @@ INSTALLED_APPS = [
 ## Quick Start
 
 ```python
-# Example usage - customize this section
-from {module_name} import ...
+import {module_name}
+
+print({module_name}.__version__)
 ```
 
 ## Configuration
@@ -362,8 +262,7 @@ pip install -e ".[dev]"
 pre-commit install
 
 # Run tests
-# CONDITIONAL: If test_framework == "pytest": pytest
-# CONDITIONAL: If test_framework == "unittest": python test_manage.py test
+{test_command}
 
 # Run linting
 ruff check src tests
@@ -438,7 +337,7 @@ from wagtail.images.blocks import ImageChooserBlock
 
 class {module_name_camel}Block(blocks.StructBlock):
     """
-    Example StreamField block - customize as needed.
+    Example StreamField block for this package.
     """
 
     title = blocks.CharBlock(required=True, max_length=255)
@@ -485,7 +384,12 @@ urlpatterns = [
 
 After running the command, you MUST make the following modifications:
 
-1. **Consolidate settings files** (if `wagtail start` created multiple settings files):
+1. **Remove unneeded generated root files**:
+   - Delete `.dockerignore` if it exists.
+   - Delete `Dockerfile` if it exists.
+   - Delete `requirements.txt` if it exists.
+
+2. **Consolidate settings files** (if `wagtail start` created multiple settings files):
    - If `sandbox/sandbox/settings/` directory exists with `base.py`, `dev.py`, and `production.py`:
      - Copy any development-specific settings from `dev.py` into `base.py`
      - Remove `dev.py` and `production.py`
@@ -493,7 +397,12 @@ After running the command, you MUST make the following modifications:
      - Remove the now-empty `settings/` directory
    - Ensure `DEBUG = True` is set in the settings file for easy development
 
-2. **Update the settings file** (`sandbox/sandbox/settings.py`) to integrate the package:
+3. **Normalize sandbox files**:
+   - Use LF line endings and one final newline per file.
+   - Remove timestamped, machine-specific, or environment-specific comments.
+   - Keep imports in the order shown in the reference files below.
+
+4. **Update the settings file** (`sandbox/sandbox/settings.py`) to integrate the package:
 
    a. Add these imports and path modifications near the top (after BASE_DIR):
    ```python
@@ -893,7 +802,9 @@ class Migration(migrations.Migration):
 
 ---
 
-## tests/conftest.py
+## tests/conftest.py (pytest only)
+
+Generate this file only when `test_framework == "pytest"`.
 
 ```python
 import pytest
@@ -1085,48 +996,16 @@ on:
   pull_request:
     branches: [main]
 
-# DYNAMIC GENERATION: Generate matrix from version_data
-#
-# Matrix arrays (format as JSON arrays in YAML):
-#   python-version: All Python versions from version_data.all_python_versions
-#   django-version: All Django versions from version_data.all_django_versions
-#   wagtail-version: All Wagtail versions from version_data.supported_wagtail_versions
-#
-# Exclusions (format as YAML array of objects):
-#   For each item in version_data.exclusions:
-#     - python-version: "{excl.python}"
-#       {django-version OR wagtail-version}: "{excl.django OR excl.wagtail}"
-#       # Add comment with reason: {excl.reason}
-#
-# Example output:
 jobs:
   test:
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
       matrix:
-        # <DYNAMIC: Generate python-version array>
-        # Example: python-version: ["3.9", "3.10", "3.11", "3.12", "3.13", "3.14"]
-        python-version: []
-        # <DYNAMIC: Generate django-version array>
-        # Example: django-version: ["4.2", "5.1", "5.2"]
-        django-version: []
-        # <DYNAMIC: Generate wagtail-version array>
-        # Example: wagtail-version: ["7.0", "7.1", "7.2"]
-        wagtail-version: []
-        exclude:
-          # <DYNAMIC: Generate exclusions from version_data.exclusions>
-          # Example entries:
-          # # Python 3.14 only supported in Wagtail 7.2+
-          # - python-version: "3.14"
-          #   wagtail-version: "7.0"
-          # - python-version: "3.14"
-          #   wagtail-version: "7.1"
-          # # Django 4.2 only supports up to Python 3.12
-          # - python-version: "3.13"
-          #   django-version: "4.2"
-          # - python-version: "3.14"
-          #   django-version: "4.2"
+        python-version: {github_python_versions}
+        django-version: {github_django_versions}
+        wagtail-version: {github_wagtail_versions}
+{github_exclude_block}
 
     steps:
       - uses: actions/checkout@v4
@@ -1145,8 +1024,7 @@ jobs:
 
       - name: Run tests
         run: |
-          # CONDITIONAL: If test_framework == "pytest": pytest --cov --cov-report=xml
-          # CONDITIONAL: If test_framework == "unittest": coverage run test_manage.py test && coverage xml
+          {github_test_command}
 
       - name: Upload coverage
         uses: codecov/codecov-action@v4
@@ -1345,8 +1223,10 @@ recursive-exclude * *.py[co]
 
 ## Makefile
 
+Render `{sandbox_phony_targets}`, `{sandbox_help_lines}`, and `{sandbox_targets}` as empty strings when `include_sandbox=false`.
+
 ```makefile
-.PHONY: help install dev test test-all lint format clean build publish sandbox migrate superuser
+.PHONY: help install dev test test-all lint format clean build publish{sandbox_phony_targets}
 
 help:
 	@echo "Available commands:"
@@ -1359,11 +1239,7 @@ help:
 	@echo "  make clean      - Remove build artifacts"
 	@echo "  make build      - Build package"
 	@echo "  make publish    - Publish to PyPI"
-	@echo ""
-	@echo "Sandbox commands:"
-	@echo "  make sandbox    - Run the sandbox development server"
-	@echo "  make migrate    - Run sandbox migrations"
-	@echo "  make superuser  - Create sandbox superuser"
+{sandbox_help_lines}
 
 install:
 	pip install -e .
@@ -1373,18 +1249,17 @@ dev:
 	pre-commit install
 
 test:
-	# CONDITIONAL: If test_framework == "pytest": pytest
-	# CONDITIONAL: If test_framework == "unittest": python test_manage.py test
+	{make_test_command}
 
 test-all:
 	tox
 
 lint:
-	ruff check src tests sandbox
+	ruff check {lint_paths}
 
 format:
-	ruff format src tests sandbox
-	ruff check --fix src tests sandbox
+	ruff format {lint_paths}
+	ruff check --fix {lint_paths}
 
 clean:
 	rm -rf build/ dist/ *.egg-info/ .pytest_cache/ .coverage htmlcov/ .tox/
@@ -1396,15 +1271,7 @@ build: clean
 publish: build
 	twine upload dist/*
 
-# Sandbox commands
-sandbox:
-	cd sandbox && python manage.py runserver
-
-migrate:
-	cd sandbox && python manage.py migrate
-
-superuser:
-	cd sandbox && python manage.py createsuperuser
+{sandbox_targets}
 ```
 
 ---
@@ -1412,90 +1279,34 @@ superuser:
 ## tox.ini
 
 ```ini
-# DYNAMIC GENERATION: Generate envlist from version_data
-#
-# Algorithm (see Dynamic Version Generation section for full pseudo-code):
-# 1. Group by Python version in ascending order
-# 2. For each Python version:
-#    a. Add comment describing the version (e.g., "# Python 3.9 - oldest supported")
-#    b. For each compatible Django version (check exclusions):
-#       i. Get compatible Wagtail versions (check exclusions)
-#       ii. Format as: py{XX}-django{YY}-wagtail{Z1,Z2,Z3}
-#       iii. Add to envlist
-# 3. Exclusions to apply:
-#    - Python 3.13/3.14 + Django 4.2 (Django 4.2 max is Python 3.12)
-#    - Python 3.14 + Wagtail 7.0/7.1 (Python 3.14 only in Wagtail 7.2+)
-#
-# Example output structure:
 [tox]
 envlist =
-    # <DYNAMIC: Generate envlist based on version_data>
-    # Example for Python 3.9 (if supported):
-    # # Python 3.9 - oldest supported
-    # py39-django42-wagtail{70,71}
-    # Example for Python 3.10:
-    # # Python 3.10 - all versions
-    # py310-django42-wagtail{70,71,72}
-    # py310-django51-wagtail{70,71,72}
-    # py310-django52-wagtail{70,71,72}
-    # Example for Python 3.13 (excluding Django 4.2):
-    # # Python 3.13 - Django 5.1+ only (4.2 doesn't support 3.13)
-    # py313-django51-wagtail{70,71,72}
-    # py313-django52-wagtail{70,71,72}
-    # Example for Python 3.14 (if supported, only Wagtail 7.2):
-    # # Python 3.14 - Django 5.2, Wagtail 7.2 only
-    # py314-django52-wagtail72
+{tox_envlist}
 
 skip_missing_interpreters = true
 
-# DYNAMIC GENERATION: Generate deps from version_data
-#
-# For each Django version in version_data.all_django_versions:
-#     django{AB}: Django>={A.B},<{A.B+1}
-# For each Wagtail version in version_data.supported_wagtail_versions:
-#     wagtail{CD}: wagtail>={C.D},<{C.D+1}
-#
-# Example output:
 [testenv]
 deps =
-    # <DYNAMIC: Generate Django deps>
-    # Example: django42: Django>=4.2,<4.3
-    # Example: django51: Django>=5.1,<5.2
-    # Example: django52: Django>=5.2,<5.3
-    # <DYNAMIC: Generate Wagtail deps>
-    # Example: wagtail70: wagtail>=7.0,<7.1
-    # Example: wagtail71: wagtail>=7.1,<7.2
-    # Example: wagtail72: wagtail>=7.2,<7.3
-    # CONDITIONAL: If test_framework == "pytest", include:
-    pytest>=8.0
-    pytest-django>=4.5
-    pytest-cov>=4.0
-    # CONDITIONAL: If test_framework == "unittest", include:
-    coverage>=7.0
+{tox_deps}
+{tox_test_dependencies}
 
 commands =
-    # CONDITIONAL: If test_framework == "pytest":
-    pytest --cov={module_name} --cov-report=term-missing --cov-report=html
-    # CONDITIONAL: If test_framework == "unittest":
-    python test_manage.py test
-    coverage run test_manage.py test
-    coverage report
-    coverage html
+{tox_commands}
 
 [testenv:lint]
 deps =
     ruff>=0.4
 
 commands =
-    ruff check src tests sandbox
+    ruff check {lint_paths}
 
 [testenv:format]
 deps =
     ruff>=0.4
 
 commands =
-    ruff format src tests sandbox
-    ruff check --fix src tests sandbox
+    ruff format {lint_paths}
+    ruff check --fix {lint_paths}
 
 [testenv:docs]
 deps =
@@ -1520,6 +1331,52 @@ When applying templates, transform variables as follows:
 | `{module_name_upper}` | SCREAMING_SNAKE | `WAGTAIL_AI_IMAGES` |
 | `{package_title}` | Title Case | `Wagtail AI Images` |
 | `{python_min_nodot}` | Remove dot | `310` |
-| `{wagtail_min[0]}` | Major version | `6` |
+| `{wagtail_major}` | Major version from `wagtail_min` | `7` |
+| `{wagtail_next_minor}` | Increment the minor component of `wagtail_min` | `7.1` |
 | `{year}` | Current year | `2025` |
 | `{date}` | YYYY-MM-DD | `2025-01-15` |
+
+Render compound placeholders as follows:
+
+| Placeholder | pytest value | unittest value |
+|-------------|--------------|----------------|
+| `{test_dependencies}` | Four-space indented lines for `"pytest>=8.0",`, `"pytest-django>=4.5",`, `"pytest-cov>=4.0",` | Four-space indented line for `"coverage>=7.0",` |
+| `{pytest_ini_options}` | Full `[tool.pytest.ini_options]` block shown above | Empty string |
+| `{coverage_command_line}` | Empty string | `command_line = "-m unittest discover -s tests -p 'test_*.py'"` |
+| `{test_command}` | `pytest` | `python test_manage.py test` |
+| `{github_test_command}` | `pytest --cov --cov-report=xml` | `coverage run test_manage.py test && coverage xml` |
+| `{make_test_command}` | `pytest` | `python test_manage.py test` |
+| `{tox_test_dependencies}` | Four-space indented pytest dependency lines | Four-space indented `coverage>=7.0` |
+| `{tox_commands}` | Four-space indented `pytest --cov={module_name} --cov-report=term-missing --cov-report=html` | Four-space indented `coverage run test_manage.py test`, `coverage report`, and `coverage html` |
+
+`{pytest_ini_options}` renders this exact block for pytest:
+
+```toml
+[tool.pytest.ini_options]
+DJANGO_SETTINGS_MODULE = "tests.settings"
+python_files = ["test_*.py"]
+testpaths = ["tests"]
+addopts = "-v --tb=short"
+```
+
+Render version placeholders as follows:
+
+| Placeholder | Rendering |
+|-------------|-----------|
+| `{django_classifiers}` | Four-space indented classifier lines, one per Django version |
+| `{python_classifiers}` | Four-space indented classifier lines, one per Python version |
+| `{github_python_versions}` | Inline YAML array from `version_data.all_python_versions` |
+| `{github_django_versions}` | Inline YAML array from `version_data.all_django_versions` |
+| `{github_wagtail_versions}` | Inline YAML array from supported Wagtail version numbers |
+| `{github_exclude_block}` | Eight-space indented `exclude: []` or an `exclude:` key followed by sorted exclusion entries |
+| `{tox_envlist}` | Four-space indented tox envlist rows from the canonical matrix algorithm |
+| `{tox_deps}` | Four-space indented Django dependency selector lines followed by Wagtail dependency selector lines |
+| `{lint_paths}` | `src tests sandbox` when `include_sandbox=true`; otherwise `src tests` |
+
+Render sandbox placeholders as follows:
+
+| Placeholder | `include_sandbox=true` | `include_sandbox=false` |
+|-------------|------------------------|-------------------------|
+| `{sandbox_phony_targets}` | ` sandbox migrate superuser` | Empty string |
+| `{sandbox_help_lines}` | Help lines for sandbox, migrate, and superuser targets | Empty string |
+| `{sandbox_targets}` | Full sandbox, migrate, and superuser targets | Empty string |
