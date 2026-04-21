@@ -1,6 +1,6 @@
 # Wagtail Package Scaffolder
 
-A Claude Code skill that generates production-ready Wagtail packages with dynamic version detection.
+An agent-agnostic scaffolding skill that generates production-ready Wagtail packages with dynamic version detection.
 
 ## Features
 
@@ -23,10 +23,12 @@ In your new empty folder where you want to generate a package:
 curl -sSL https://raw.githubusercontent.com/nm-packages/wagtail-package-scaffold/main/install.sh | bash
 ```
 
-Once installed, run Claude Code and ask:
+Once installed, ask your coding agent:
 ```
-Create a Wagtail package called [your-package-name]
+Create a Wagtail package called wagtail-hello-world
 ```
+
+The canonical skill is installed at `skills/wagtail-package-scaffolder/`. It can be used by any coding agent that can read local Markdown instructions, bundled references, and write files in the target workspace.
 
 ## Usage
 
@@ -38,7 +40,7 @@ The skill will:
 
 ## Requirements
 
-- Claude Code CLI
+- An AI coding agent with shell and file access
 - Internet connection (for version detection)
 
 ## What Gets Generated
@@ -53,4 +55,4 @@ The skill will:
 
 ## Learn More
 
-See [`claude_code_skill.md`](claude_code_skill.md) for detailed documentation.
+See [`usage.md`](usage.md) for detailed documentation.

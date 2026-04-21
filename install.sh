@@ -7,48 +7,44 @@ set -e
 
 REPO="https://github.com/nm-packages/wagtail-package-scaffold"
 BRANCH="main"
+SKILL_DIR="skills/wagtail-package-scaffolder"
 
-echo "📦 Installing Wagtail Package Scaffolder skill..."
+echo "Installing Wagtail Package Scaffolder skill..."
 echo ""
 
-# Check if .claude directory already exists
-if [ -d ".claude/skills/wagtail-package-scaffolder" ]; then
-    echo "⚠️  Skill already exists in .claude/skills/wagtail-package-scaffolder"
+if [ -d "${SKILL_DIR}" ]; then
+    echo "Skill already exists in ${SKILL_DIR}"
     read -p "Overwrite? (y/N): " -n 1 -r
     echo
     if [[ ! $REPLY =~ ^[Yy]$ ]]; then
         echo "Installation cancelled."
         exit 1
     fi
-    rm -rf .claude/skills/wagtail-package-scaffolder
+    rm -rf "${SKILL_DIR}"
 fi
 
-# Create directory structure
-mkdir -p .claude/skills/wagtail-package-scaffolder/references
+mkdir -p "${SKILL_DIR}/references"
 
-echo "📥 Downloading skill files..."
+echo "Downloading skill files..."
 
-# Download SKILL.md
-curl -sL "${REPO}/raw/${BRANCH}/.claude/skills/wagtail-package-scaffolder/SKILL.md" \
-    -o .claude/skills/wagtail-package-scaffolder/SKILL.md
+curl -sL "${REPO}/raw/${BRANCH}/skills/wagtail-package-scaffolder/SKILL.md" \
+    -o "${SKILL_DIR}/SKILL.md"
 
-# Download file-templates.md
-curl -sL "${REPO}/raw/${BRANCH}/.claude/skills/wagtail-package-scaffolder/references/file-templates.md" \
-    -o .claude/skills/wagtail-package-scaffolder/references/file-templates.md
+curl -sL "${REPO}/raw/${BRANCH}/skills/wagtail-package-scaffolder/references/file-templates.md" \
+    -o "${SKILL_DIR}/references/file-templates.md"
 
-echo "✅ Installation complete!"
+echo "Installation complete!"
 echo ""
-echo "The skill is now available in: .claude/skills/wagtail-package-scaffolder/"
+echo "The skill is now available in: ${SKILL_DIR}/"
 echo ""
-echo "📝 Usage:"
-echo "  Open Claude Code and ask:"
+echo "Usage:"
+echo "  Ask your coding agent:"
 echo "  'Create a Wagtail package called [your-package-name]'"
 echo ""
-echo "📚 For more info, see: ${REPO}"
+echo "For more info, see: ${REPO}"
 echo ""
 
-# Remove this installation script
 if [ -f "install.sh" ]; then
-    echo "🗑️  Cleaning up installation script..."
+    echo "Cleaning up installation script..."
     rm -f install.sh
 fi
