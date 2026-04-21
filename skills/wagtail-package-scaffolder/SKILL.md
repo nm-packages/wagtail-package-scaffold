@@ -12,8 +12,12 @@ Generate production-ready Wagtail packages following current best practices (202
 When the user wants to scaffold a Wagtail package:
 
 1. **GUARDRAIL CHECK**: Verify the directory is clean before proceeding
-   - Check if any files exist besides: `.claude/`, `claude_code_install.md`, `readme.md` (case-insensitive)
-   - If other files exist, abort with an error message: "The directory contains existing files. This skill only works in a clean directory with just the .claude folder and optional readme.md/claude_code_install.md files. Please run this skill in an empty directory or a new subdirectory."
+   - Check if any files exist besides agent skill directories and optional installer docs:
+     - `.codex/skills/wagtail-package-scaffolder/`
+     - `.claude/skills/wagtail-package-scaffolder/`
+     - `skills/wagtail-package-scaffolder/` for legacy/manual installs
+     - `install.sh`, `usage.md`, `readme.md` (case-insensitive)
+   - If other files exist, abort with an error message: "The directory contains existing files. This skill only works in a clean directory with just the installed scaffolding skill and optional readme.md/usage.md/install.sh files. Please run this skill in an empty directory or a new subdirectory."
    - Only proceed if the directory is clean
 
 2. **FETCH VERSION COMPATIBILITY**: Query official Wagtail sources for current version support (see **Dynamic Version Detection** section below)
@@ -63,10 +67,10 @@ Collect these from the user before generating:
 
 ### Step 1: Fetch Wagtail Release Schedule
 
-Use the WebFetch tool to retrieve the current release schedule:
+Use the agent's available web/documentation retrieval tool or HTTP client to retrieve the current release schedule:
 
 - **URL**: https://github.com/wagtail/wagtail/wiki/Release-schedule
-- **Prompt**: "Extract the release schedule table showing Version, Release Date, and Security Support end dates. Return as a JSON array with fields: version (string), is_lts (boolean), support_end (date in YYYY-MM-DD format). Only include versions where the Release Date is today or earlier (today is 2025-12-19)."
+- **Prompt**: "Extract the release schedule table showing Version, Release Date, and Security Support end dates. Return as a JSON array with fields: version (string), is_lts (boolean), support_end (date in YYYY-MM-DD format). Only include versions where the Release Date is today or earlier, using the current system date."
 - Parse the response into structured data
 - Filter to keep only versions where `support_end >= today's date`
 
@@ -83,7 +87,7 @@ Use the WebFetch tool to retrieve the current release schedule:
 
 ### Step 2: Fetch Wagtail-Django-Python Compatibility Matrix
 
-Use the WebFetch tool to retrieve the compatibility matrix:
+Use the agent's available web/documentation retrieval tool or HTTP client to retrieve the compatibility matrix:
 
 - **URL**: https://docs.wagtail.org/en/stable/releases/upgrading.html
 - **Prompt**: "Extract the compatibility matrix table showing which Django and Python versions are supported by each Wagtail version. Return as JSON object where keys are Wagtail versions (as strings like '7.0', '7.1', etc.) and values contain arrays of Django versions and Python versions supported by that Wagtail version."
@@ -225,7 +229,7 @@ Would you like to:
 
 ### Step 6: Error Handling
 
-**If WebFetch fails** (network error, timeout, rate limiting):
+**If version data retrieval fails** (network error, timeout, rate limiting):
 ```
 ❌ Unable to fetch current version data from official Wagtail sources.
 Error: {error_message}
@@ -252,7 +256,7 @@ The page format may have changed since this skill was last updated.
 Cannot proceed with package generation without accurate version data.
 
 Please report this issue at:
-https://github.com/wagtail/claude-code-wagtail-package-scaffolder/issues
+https://github.com/nm-packages/wagtail-package-scaffold/issues
 
 Include this information:
 - Date: {current_date}
@@ -497,26 +501,35 @@ python manage.py runserver
 
 After providing all post-generation instructions, inform the user about cleanup:
 
-**IMPORTANT**: Use the AskUserQuestion tool to ask the user if they want to remove the scaffolding files.
+**IMPORTANT**: Ask the user for confirmation using the agent's normal interaction mechanism before removing scaffolding files.
 
 Tell the user:
 "Now that your package is scaffolded, the following files/folders are no longer needed for developing or using the package:
-- `.claude/` - Contains the scaffolding skill (no longer needed)
-- `claude_code_install.md` - Claude Code installation instructions (no longer needed)
+- The installed scaffolding skill directory (no longer needed):
+  - `.codex/skills/wagtail-package-scaffolder/` if using Codex
+  - `.claude/skills/wagtail-package-scaffolder/` if using Claude Code
+  - `skills/wagtail-package-scaffolder/` if using the legacy/manual layout
+- `usage.md` - Skill usage instructions (no longer needed)
+- `install.sh` - Skill installation script (no longer needed)
 
 Would you like me to remove these files to keep your package clean?"
 
 If the user agrees (answers yes):
-1. Remove the `.claude/` directory and all its contents
-2. Remove the `claude_code_install.md` file (if it exists)
+1. Remove the installed scaffolding skill directory and all its contents:
+   - Codex: `.codex/skills/wagtail-package-scaffolder/`
+   - Claude Code: `.claude/skills/wagtail-package-scaffolder/`
+   - Legacy/manual: `skills/wagtail-package-scaffolder/`
+2. Remove `usage.md` and `install.sh` if they exist
 3. Confirm the removal with a brief message
 
 If the user declines:
 1. Acknowledge their choice
 2. Remind them they can manually delete these files anytime with:
    ```bash
-   rm -rf .claude
-   rm -f claude_code_install.md
+   rm -rf .codex/skills/wagtail-package-scaffolder
+   rm -rf .claude/skills/wagtail-package-scaffolder
+   rm -rf skills/wagtail-package-scaffolder
+   rm -f usage.md install.sh
    ```
 
 ## Customization Points

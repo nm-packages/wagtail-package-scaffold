@@ -1,6 +1,6 @@
 # Wagtail Package Scaffolder
 
-A Claude Code skill that generates production-ready Wagtail packages with dynamic version detection.
+An agent-agnostic scaffolding skill that generates production-ready Wagtail packages with dynamic version detection.
 
 ## Features
 
@@ -17,16 +17,37 @@ A Claude Code skill that generates production-ready Wagtail packages with dynami
 curl https://raw.githubusercontent.com/nm-packages/wagtail-package-scaffold/main/install.sh | less
 ```
 
-In your new empty folder where you want to generate a package:
+In your new empty folder where you want to generate a package, install the skill for your coding agent.
+
+For Codex:
 
 ```bash
-curl -sSL https://raw.githubusercontent.com/nm-packages/wagtail-package-scaffold/main/install.sh | bash
+curl -sSL https://raw.githubusercontent.com/nm-packages/wagtail-package-scaffold/main/install.sh | bash -s -- --agent codex
 ```
 
-Once installed, run Claude Code and ask:
+For Claude Code:
+
+```bash
+curl -sSL https://raw.githubusercontent.com/nm-packages/wagtail-package-scaffold/main/install.sh | bash -s -- --agent claude
 ```
-Create a Wagtail package called [your-package-name]
+
+To install into a specific target folder:
+
+```bash
+curl -sSL https://raw.githubusercontent.com/nm-packages/wagtail-package-scaffold/main/install.sh | bash -s -- --agent codex --target ./my-new-package
 ```
+
+Once installed, ask your coding agent:
+```
+Create a Wagtail package called wagtail-hello-world
+```
+
+The skill is installed into the project-local skill directory for your agent:
+
+- Codex: `.codex/skills/wagtail-package-scaffolder/`
+- Claude Code: `.claude/skills/wagtail-package-scaffolder/`
+
+The skill can be removed after it generates the package files.
 
 ## Usage
 
@@ -38,7 +59,7 @@ The skill will:
 
 ## Requirements
 
-- Claude Code CLI
+- An AI coding agent with shell and file access
 - Internet connection (for version detection)
 
 ## What Gets Generated
@@ -53,4 +74,4 @@ The skill will:
 
 ## Learn More
 
-See [`claude_code_skill.md`](claude_code_skill.md) for detailed documentation.
+See [`usage.md`](usage.md) for detailed documentation.

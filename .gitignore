@@ -2,14 +2,14 @@
 *
 
 # But keep the skill files
-!.claude/
-!.claude/**
+!skills/
+!skills/**
 
-# Except local settings
-.claude/settings.local.json
+# Except local agent settings
+skills/**/settings.local.json
 
 # Keep the documentation
-!claude_code_skill.md
+!usage.md
 !readme.md
 !README.md
 
