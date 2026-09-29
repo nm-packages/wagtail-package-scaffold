@@ -12,6 +12,11 @@ skills/**/settings.local.json
 !usage.md
 !readme.md
 !README.md
+!AGENTS.md
+
+# Keep the repository pull request template
+!.github/
+!.github/pull_request_template.md
 
 # Keep installation script
 !install.sh
