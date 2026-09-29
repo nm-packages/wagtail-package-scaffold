@@ -12,6 +12,7 @@ skills/**/settings.local.json
 !usage.md
 !readme.md
 !README.md
+!AGENTS.md
 
 # Keep installation script
 !install.sh
