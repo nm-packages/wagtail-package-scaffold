@@ -6,7 +6,6 @@
 set -e
 
 REPO="https://github.com/nm-packages/wagtail-package-scaffold"
-RAW_REPO="https://raw.githubusercontent.com/nm-packages/wagtail-package-scaffold"
 BRANCH="main"
 SKILL_NAME="wagtail-package-scaffolder"
 AGENT=""
@@ -59,19 +58,6 @@ agent_skill_root() {
             echo ""
             ;;
     esac
-}
-
-download_file() {
-    local source_path="$1"
-    local fallback_path="$2"
-    local destination="$3"
-    local source_url="${RAW_REPO}/${BRANCH}/${source_path}"
-    local fallback_url="${RAW_REPO}/${BRANCH}/${fallback_path}"
-
-    if ! curl -fsSL "$source_url" -o "$destination" 2>/dev/null; then
-        echo "Could not download ${source_path}; trying legacy source path." >&2
-        curl -fsSL "$fallback_url" -o "$destination"
-    fi
 }
 
 prompt_for_agent() {
@@ -161,22 +147,28 @@ if [ -d "${SKILL_DIR}" ]; then
             exit 1
         fi
     fi
-    rm -rf "${SKILL_DIR}"
 fi
 
-mkdir -p "${SKILL_DIR}/references"
+# Download the complete bundle from a single repository snapshot. Scripts,
+# templates, and their manifest must be installed together for replay checks.
+STAGING_DIR="$(mktemp -d)"
+trap 'rm -rf "$STAGING_DIR"' EXIT
 
-echo "Downloading skill files..."
+echo "Downloading skill bundle..."
+curl -fsSL "${REPO}/archive/refs/heads/${BRANCH}.tar.gz" -o "${STAGING_DIR}/bundle.tar.gz"
+tar -xzf "${STAGING_DIR}/bundle.tar.gz" -C "$STAGING_DIR"
+BUNDLE_DIR="${STAGING_DIR}/wagtail-package-scaffold-${BRANCH}/skills/${SKILL_NAME}"
 
-download_file \
-    "skills/wagtail-package-scaffolder/SKILL.md" \
-    ".claude/skills/wagtail-package-scaffolder/SKILL.md" \
-    "${SKILL_DIR}/SKILL.md"
+if [ ! -f "${BUNDLE_DIR}/scripts/scaffold.py" ] || [ ! -f "${BUNDLE_DIR}/assets/manifest.json" ]; then
+    echo "Error: downloaded skill bundle is incomplete." >&2
+    exit 1
+fi
 
-download_file \
-    "skills/wagtail-package-scaffolder/references/file-templates.md" \
-    ".claude/skills/wagtail-package-scaffolder/references/file-templates.md" \
-    "${SKILL_DIR}/references/file-templates.md"
+mkdir -p "${TARGET_DIR%/}/${SKILL_ROOT}"
+if [ -d "$SKILL_DIR" ]; then
+    rm -rf "$SKILL_DIR"
+fi
+cp -R "$BUNDLE_DIR" "$SKILL_DIR"
 
 echo "Installation complete!"
 echo ""
@@ -186,5 +178,5 @@ echo "Usage:"
 echo "  Ask your coding agent:"
 echo "  'Create a Wagtail package called [your-package-name]'"
 echo ""
+echo "Requires Python 3.11+; generation uses no third-party Python dependencies."
 echo "For more info, see: ${REPO}"
-echo ""
