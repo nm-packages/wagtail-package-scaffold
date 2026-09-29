@@ -2,7 +2,7 @@
 
 ## Project Structure & Module Organization
 
-This repository distributes an agent-agnostic Wagtail package scaffolding skill. The workflow lives in `skills/wagtail-package-scaffolder/SKILL.md`; generated-file templates and substitution rules live in `skills/wagtail-package-scaffolder/references/file-templates.md`. `install.sh` installs these files for Codex or Claude Code. `README.md` and `usage.md` explain installation and usage.
+This repository distributes an agent-agnostic Wagtail package scaffolding skill. The workflow lives in `skills/wagtail-package-scaffolder/SKILL.md`; Python generation lives in `skills/wagtail-package-scaffolder/scripts/`; executable templates and the ordered manifest live in `skills/wagtail-package-scaffolder/assets/`. `skills/wagtail-package-scaffolder/references/file-templates.md` documents configuration and rendering rules. `install.sh` installs these files for Codex or Claude Code. `README.md` and `usage.md` explain installation and usage.
 
 Directories such as `src/`, `tests/`, `sandbox/`, and package static assets belong to generated projects; they are not present in this repository.
 
@@ -12,7 +12,7 @@ Directories such as `src/`, `tests/`, `sandbox/`, and package static assets belo
 - `bash install.sh --help`: inspect supported arguments.
 - `bash install.sh --agent codex --target /tmp/scaffold-check`: smoke-test installation in a disposable directory; use `--agent claude` for Claude Code. Downloads come from GitHub's `main` branch, so this does not validate local template edits.
 
-There is no repository build or automated test suite. To validate template changes, scaffold a disposable project using the edited skill. Within that generated project, `make dev` installs development dependencies, `make test` runs tests, `make test-all` runs tox, and `make build` creates distribution artifacts.
+Run `python3 -m unittest discover -s skills/wagtail-package-scaffolder/tests -v` for generator regression checks. There is no repository build. To validate template changes, scaffold a disposable project using the edited generator. Within that generated project, `make dev` installs development dependencies, `make test` runs tests, `make test-all` runs tox, and `make build` creates distribution artifacts.
 
 ## Coding Style & Naming Conventions
 
