@@ -34,4 +34,13 @@ Verify generated files contain no unresolved placeholders, use LF endings and on
 
 Use short imperative commit subjects, following history. Update usage documentation when prompts, installer arguments, or generated output change.
 
+### Commit Planning and Staging
+
+- Plan commit boundaries before implementation. Identify independently reviewable changes and present the proposed commit sequence with the completed work for developer review.
+- Give each commit one coherent purpose. Keep implementation, required templates, and its regression tests together. Separate independently reviewable work such as installer changes, workflow/documentation updates, and contributor policy changes.
+- Use multiple focused commits when a task spans these distinct concerns. Do not collect the entire task into one commit or squash the sequence unless the developer explicitly requests it. Small changes with one coherent purpose can use one commit.
+- Keep every commit usable at its position in the sequence: include required dependencies and avoid references to files introduced only by a later commit. Do not split changes merely to increase the commit count.
+- Stage explicit file paths or selected hunks for each commit. Inspect `git diff --cached` and run `git diff --cached --check` before committing; confirm that only the intended change is staged.
+- Include the commit sequence and relevant validation results in the review summary. Approval applies to the changes reviewed; subsequent changes still require review before committing.
+
 The root `.gitignore` ignores files by default. Explicitly allow or force-add intended new contributor files; keep generated projects and local agent settings out of commits.
