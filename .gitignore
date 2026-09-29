@@ -23,3 +23,7 @@ skills/**/settings.local.json
 
 # Keep this gitignore
 !.gitignore
+
+# Keep Python runtime artifacts out of the distributed skill
+skills/**/__pycache__/
+skills/**/*.pyc

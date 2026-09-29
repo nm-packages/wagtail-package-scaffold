@@ -1,0 +1,17 @@
+from wagtail import blocks
+from wagtail.images.blocks import ImageChooserBlock
+
+
+class {module_name_camel}Block(blocks.StructBlock):
+    """
+    Example StreamField block for this package.
+    """
+
+    title = blocks.CharBlock(required=True, max_length=255)
+    text = blocks.RichTextBlock(required=False)
+    image = ImageChooserBlock(required=False)
+
+    class Meta:
+        template = "{module_name}/blocks/{module_name}_block.html"
+        icon = "placeholder"
+        label = "{package_title} Block"

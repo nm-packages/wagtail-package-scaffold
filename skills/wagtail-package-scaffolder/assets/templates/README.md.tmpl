@@ -1,0 +1,73 @@
+# {package_name}
+
+[![PyPI version](https://badge.fury.io/py/{package_name}.svg)](https://badge.fury.io/py/{package_name})
+[![Test](https://github.com/{github_username}/{package_name}/actions/workflows/test.yml/badge.svg)](https://github.com/{github_username}/{package_name}/actions/workflows/test.yml)
+[![License: {license}](https://img.shields.io/badge/License-{license}-blue.svg)](LICENSE)
+
+{description}
+
+## Requirements
+
+- Python {python_min}+
+- Django {django_min}+
+- Wagtail {wagtail_min}+
+
+## Installation
+
+```bash
+pip install {package_name}
+```
+
+Add to your `INSTALLED_APPS`:
+
+```python
+INSTALLED_APPS = [
+    # ...
+    "{module_name}",
+    # ...
+]
+```
+
+## Quick Start
+
+```python
+import {module_name}
+
+print({module_name}.__version__)
+```
+
+## Configuration
+
+The scaffold does not require package-specific settings. Document any settings
+as you implement features.
+
+## Documentation
+
+Full documentation is available at [GitHub](https://github.com/{github_username}/{package_name}).
+
+## Development
+
+```bash
+# Clone and install
+git clone https://github.com/{github_username}/{package_name}.git
+cd {package_name}
+python -m venv .venv
+source .venv/bin/activate
+pip install -e ".[dev]"
+pre-commit install
+
+# Run tests
+{test_command}
+
+# Run linting
+ruff check src tests
+ruff format src tests
+```
+
+## Contributing
+
+Contributions are welcome through GitHub issues and pull requests.
+
+## License
+
+This project is licensed under the {license} License - see the [LICENSE](LICENSE) file for details.

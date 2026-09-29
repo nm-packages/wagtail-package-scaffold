@@ -1,0 +1,6 @@
+<section>
+    <h2>{{{{ value.title }}}}</h2>
+    {{% load wagtailcore_tags wagtailimages_tags %}}
+    {{{{ value.text|richtext }}}}
+    {{% if value.image %}}{{% image value.image width-800 %}}{{% endif %}}
+</section>

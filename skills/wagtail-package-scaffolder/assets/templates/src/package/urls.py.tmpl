@@ -1,0 +1,9 @@
+from django.urls import path
+
+from . import views
+
+app_name = "{module_name}"
+
+urlpatterns = [
+    path("api/", views.{module_name_camel}APIView.as_view(), name="api"),
+]
