@@ -70,12 +70,12 @@ local date. Network or parsing errors abort; there is no automatic cached fallba
 
 Custom `wagtail_min`, `django_min`, and `python_min` fields must each occur in the
 valid test matrix after applying all minima. The default Wagtail minimum is the
-oldest currently supported LTS. Compatibility with future, unpublished Django
+latest currently supported LTS. Compatibility with future, unpublished Django
 series is omitted.
 
 ## Generated output
 
-- Root packaging, README, MIT license, changelog, Makefile, and development config
+- Root packaging with classifiers for every selected Wagtail major, README, MIT license, changelog, Makefile, and development config
 - `src/<module_name>/` with AppConfig, migration package, static/template directories
 - `tests/` with settings and pytest or Django unittest tests
 - `.github/` with CI, publishing workflow, and a bug-report template

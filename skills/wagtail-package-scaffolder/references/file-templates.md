@@ -28,7 +28,7 @@ A JSON object accepts the following fields. Unknown fields are errors.
 | `include_models` | `true` | Render a `models.py` placeholder; migration package remains available. |
 | `include_blocks` | `false` | Render an example StructBlock and its HTML template. |
 | `include_api` | `false` | Render a JSON endpoint, URL configuration, and a generated endpoint test. |
-| `wagtail_min` | Oldest supported LTS | Must occur in the compatible matrix after applying all minima. |
+| `wagtail_min` | Latest supported LTS | Must occur in the compatible matrix after applying all minima. |
 | `django_min` | Lowest compatible Django for that LTS | Same constraint. |
 | `python_min` | Lowest compatible Python for those defaults | Same constraint. |
 
@@ -60,7 +60,10 @@ Build triples only when Python and Django both occur in the Wagtail row and the
 Python release also occurs in Django's compatibility list. Apply user minima,
 then sort by Python, Django, and Wagtail numerically. Both tox and GitHub Actions
 use this exact set; Actions uses an explicit `include` matrix. Classifiers use
-the Python and Django releases occurring in those triples.
+the Python and Django releases occurring in those triples. Wagtail classifiers
+include every distinct major version occurring in the selected triples, sorted
+numerically and emitted once (for example, `Framework :: Wagtail :: 7` and
+`Framework :: Wagtail :: 8`).
 
 ## Rendering and replay
 

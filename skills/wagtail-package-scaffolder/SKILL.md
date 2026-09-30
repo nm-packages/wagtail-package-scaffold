@@ -69,7 +69,9 @@ slugify the author's name or use `your-github-username`.
 
    The command prints recommended minima. Show the retained Wagtail versions,
    support dates, and defaults from the saved JSON before asking the version
-   question. Do not extract tables with prompts or substitute remembered data.
+   question. New-project defaults use the latest supported Wagtail LTS and its
+   lowest compatible Django/Python releases. Do not extract tables with prompts
+   or substitute remembered data.
 3. Collect missing inputs and write a JSON configuration in the temporary
    directory. Validate custom minima against the fetched data; the generator
    requires each minimum to occur in the resulting compatible matrix.
