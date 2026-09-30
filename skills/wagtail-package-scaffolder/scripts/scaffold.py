@@ -134,7 +134,6 @@ def context(config, data, today):
             part.capitalize() for part in config["package_name"].split("-")
         ),
         "python_min_nodot": config["python_min"].replace(".", ""),
-        "wagtail_major": config["wagtail_min"].split(".")[0],
         "date": today,
         "year": today[:4],
         "description_literal": json.dumps(config["description"], ensure_ascii=False),
@@ -155,6 +154,10 @@ def context(config, data, today):
         "lint_paths": "src tests sandbox" if config["include_sandbox"] else "src tests",
         "django_classifiers": "\n".join(
             f'    "Framework :: Django :: {v}",' for v in django_versions
+        ),
+        "wagtail_classifiers": "\n".join(
+            f'    "Framework :: Wagtail :: {major}",'
+            for major in sorted({version_key(v)[0] for v in wagtail_versions})
         ),
         "python_classifiers": "\n".join(
             f'    "Programming Language :: Python :: {v}",' for v in python_versions

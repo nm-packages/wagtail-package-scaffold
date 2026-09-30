@@ -222,6 +222,44 @@ class GeneratorTests(unittest.TestCase):
                                 self.assertTrue(body.endswith(b"\n"))
                                 self.assertFalse(body.endswith(b"\n\n"))
 
+    def test_wagtail_classifiers_follow_selected_matrix(self):
+        import tomllib
+
+        data = copy.deepcopy(DATA)
+        for version in ("8.0", "8.1"):
+            data["supported_wagtail_versions"].append(
+                {
+                    "version": version,
+                    "is_lts": False,
+                    "release_date": "2026-08-25",
+                    "support_end": "2027-02-02",
+                    "django_versions": ["5.2", "6.0"],
+                    "python_versions": ["3.10", "3.12", "3.14"],
+                }
+            )
+        data = versions.validate_data(data, TODAY)
+        for minimum, expected in (
+            ("7.4", ["Framework :: Wagtail :: 7", "Framework :: Wagtail :: 8"]),
+            ("8.0", ["Framework :: Wagtail :: 8"]),
+        ):
+            with self.subTest(minimum=minimum):
+                chosen = scaffold.normalize_config(
+                    {"package_name": "wagtail-example", "wagtail_min": minimum}, data
+                )
+                rendered = scaffold.render(chosen, data, TODAY)
+                classifiers = tomllib.loads(rendered["pyproject.toml"])["project"][
+                    "classifiers"
+                ]
+                actual = [
+                    value
+                    for value in classifiers
+                    if value.startswith("Framework :: Wagtail ::")
+                ]
+                self.assertEqual(actual, expected)
+                # Output is stable even when source release rows arrive in reverse order.
+                data["supported_wagtail_versions"].reverse()
+                self.assertEqual(scaffold.render(chosen, data, TODAY), rendered)
+
     def test_metadata_escaping_and_literal_braces(self):
         chosen = config(
             description='Quotes " and \\ and {literal} and triple """',
