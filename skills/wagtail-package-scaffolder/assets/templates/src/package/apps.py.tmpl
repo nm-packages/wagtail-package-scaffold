@@ -1,0 +1,11 @@
+from django.apps import AppConfig
+
+
+class {module_name_camel}Config(AppConfig):
+    default_auto_field = "django.db.models.BigAutoField"
+    name = "{module_name}"
+    label = "{module_name}"
+    verbose_name = "{package_title}"
+
+    def ready(self):
+        pass  # Import signals here if needed

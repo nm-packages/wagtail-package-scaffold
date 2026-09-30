@@ -1,0 +1,206 @@
+[
+  {
+    "path": "pyproject.toml",
+    "template": "pyproject.toml.tmpl"
+  },
+  {
+    "path": "README.md",
+    "template": "README.md.tmpl"
+  },
+  {
+    "path": "LICENSE",
+    "template": "LICENSE.tmpl"
+  },
+  {
+    "path": "CHANGELOG.md",
+    "template": "CHANGELOG.md.tmpl"
+  },
+  {
+    "path": "MANIFEST.in",
+    "template": "MANIFEST.in.tmpl"
+  },
+  {
+    "path": "test_manage.py",
+    "template": "test_manage.py.tmpl"
+  },
+  {
+    "path": ".gitignore",
+    "template": ".gitignore.tmpl"
+  },
+  {
+    "path": ".pre-commit-config.yaml",
+    "template": ".pre-commit-config.yaml.tmpl"
+  },
+  {
+    "path": "tox.ini",
+    "template": "tox.ini.tmpl"
+  },
+  {
+    "path": "Makefile",
+    "template": "Makefile.tmpl"
+  },
+  {
+    "path": "sandbox/sandbox/__init__.py",
+    "template": "sandbox/sandbox/__init__.py.tmpl",
+    "option": "include_sandbox"
+  },
+  {
+    "path": "sandbox/sandbox/settings.py",
+    "template": "sandbox/sandbox/settings.py.tmpl",
+    "option": "include_sandbox"
+  },
+  {
+    "path": "sandbox/sandbox/urls.py",
+    "template": "sandbox/sandbox/urls.py.tmpl",
+    "option": "include_sandbox"
+  },
+  {
+    "path": "sandbox/sandbox/wsgi.py",
+    "template": "sandbox/sandbox/wsgi.py.tmpl",
+    "option": "include_sandbox"
+  },
+  {
+    "path": "sandbox/home/__init__.py",
+    "template": "sandbox/home/__init__.py.tmpl",
+    "option": "include_sandbox"
+  },
+  {
+    "path": "sandbox/home/models.py",
+    "template": "sandbox/home/models.py.tmpl",
+    "option": "include_sandbox"
+  },
+  {
+    "path": "sandbox/home/migrations/__init__.py",
+    "template": "sandbox/home/migrations/__init__.py.tmpl",
+    "option": "include_sandbox"
+  },
+  {
+    "path": "sandbox/home/migrations/0001_initial.py",
+    "template": "sandbox/home/migrations/0001_initial.py.tmpl",
+    "option": "include_sandbox"
+  },
+  {
+    "path": "sandbox/home/migrations/0002_create_homepage.py",
+    "template": "sandbox/home/migrations/0002_create_homepage.py.tmpl",
+    "option": "include_sandbox"
+  },
+  {
+    "path": "sandbox/home/templates/home/home_page.html",
+    "template": "sandbox/home/templates/home/home_page.html.tmpl",
+    "option": "include_sandbox"
+  },
+  {
+    "path": "sandbox/templates/base.html",
+    "template": "sandbox/templates/base.html.tmpl",
+    "option": "include_sandbox"
+  },
+  {
+    "path": "sandbox/manage.py",
+    "template": "sandbox/manage.py.tmpl",
+    "option": "include_sandbox"
+  },
+  {
+    "path": "src/{module_name}/__init__.py",
+    "template": "src/package/__init__.py.tmpl"
+  },
+  {
+    "path": "src/{module_name}/apps.py",
+    "template": "src/package/apps.py.tmpl"
+  },
+  {
+    "path": "src/{module_name}/models.py",
+    "template": "src/package/models.py.tmpl",
+    "option": "include_models"
+  },
+  {
+    "path": "src/{module_name}/wagtail_hooks.py",
+    "template": "src/package/wagtail_hooks.py.tmpl",
+    "option": "include_admin"
+  },
+  {
+    "path": "src/{module_name}/blocks.py",
+    "template": "src/package/blocks.py.tmpl",
+    "option": "include_blocks"
+  },
+  {
+    "path": "src/{module_name}/views.py",
+    "template": "src/package/views.py.tmpl"
+  },
+  {
+    "path": "src/{module_name}/urls.py",
+    "template": "src/package/urls.py.tmpl",
+    "option": "include_api"
+  },
+  {
+    "path": "src/{module_name}/migrations/__init__.py",
+    "template": "src/package/migrations/__init__.py.tmpl"
+  },
+  {
+    "path": "src/{module_name}/templates/{module_name}/.gitkeep",
+    "template": "src/package/templates/package/.gitkeep.tmpl"
+  },
+  {
+    "path": "src/{module_name}/static/{module_name}/.gitkeep",
+    "template": "src/package/static/package/.gitkeep.tmpl"
+  },
+  {
+    "path": "src/{module_name}/templates/{module_name}/blocks/{module_name}_block.html",
+    "template": "src/package/templates/package/blocks/package_block.html.tmpl",
+    "option": "include_blocks"
+  },
+  {
+    "path": "tests/conftest.py",
+    "template": "tests/conftest.py.pytest.tmpl",
+    "test_framework": "pytest"
+  },
+  {
+    "path": "tests/settings.py",
+    "template": "tests/settings.py.tmpl"
+  },
+  {
+    "path": "tests/urls.py",
+    "template": "tests/urls.py.tmpl"
+  },
+  {
+    "path": "tests/test_models.py",
+    "template": "tests/test_models.py.pytest.tmpl",
+    "test_framework": "pytest"
+  },
+  {
+    "path": "tests/test_models.py",
+    "template": "tests/test_models.py.unittest.tmpl",
+    "test_framework": "unittest"
+  },
+  {
+    "path": "tests/__init__.py",
+    "template": "tests/__init__.py.tmpl"
+  },
+  {
+    "path": ".github/workflows/test.yml",
+    "template": ".github/workflows/test.yml.tmpl"
+  },
+  {
+    "path": ".github/workflows/publish.yml",
+    "template": ".github/workflows/publish.yml.tmpl"
+  },
+  {
+    "path": ".github/ISSUE_TEMPLATE/bug_report.md",
+    "template": ".github/ISSUE_TEMPLATE/bug_report.md.tmpl"
+  },
+  {
+    "path": "docs/index.md",
+    "template": "docs/index.md.tmpl"
+  },
+  {
+    "path": "docs/installation.md",
+    "template": "docs/installation.md.tmpl"
+  },
+  {
+    "path": "docs/configuration.md",
+    "template": "docs/configuration.md.tmpl"
+  },
+  {
+    "path": "mkdocs.yml",
+    "template": "mkdocs.yml.tmpl"
+  }
+]

@@ -1,632 +1,116 @@
 ---
 name: wagtail-package-scaffolder
-description: "Scaffold production-ready Wagtail/Django packages with modern Python tooling. Use when creating new Wagtail packages, Django reusable apps, or Python packages that integrate with Wagtail CMS. Triggers: 'create wagtail package', 'scaffold django app', 'new wagtail extension', 'reusable wagtail app'."
+description: "Scaffold reusable Wagtail/Django packages using a deterministic Python generator. Use when creating a new Wagtail package or reusable Wagtail app, or replaying a saved scaffold."
 ---
 
 # Wagtail Package Scaffolder
 
-Generate production-ready Wagtail packages following current best practices (2024-2025).
+Help the user choose package options, then run the bundled Python generator.
+Python owns version retrieval, validation, compatibility matrices, template
+rendering, sandbox creation, and replay. Do not generate or edit scaffold files
+with AI to work around a generator failure; report the error and resolve its cause.
+
+## Requirements and entry point
+
+Use Python 3.11+ and the `scripts/scaffold.py` beside this skill. Resolve its
+absolute path from the installed skill directory (`.codex/skills/`,
+`.claude/skills/`, or the repository's `skills/` layout). The generator uses only
+the standard library. Internet access is required for fresh version detection;
+explicit snapshot replay makes no network requests.
+
+Read [references/file-templates.md](references/file-templates.md) when you need
+configuration fields, replay details, or generator behavior. The executable
+manifest and templates are in `assets/`; the agent does not need to read them
+before invoking the generator.
+
+## Interaction
+
+Ask exactly one unresolved question per message. Include a concrete default in
+its wording, put the recommended multiple-choice answer first, and skip values
+already supplied by the user. Accept an empty answer, `default`, or `use default`
+as that question's default. Convert yes/no answers to JSON booleans.
+
+Ask in this order:
+
+1. Version defaults or custom constraints (custom: Wagtail, Django, Python minima separately).
+2. Package name.
+3. Description.
+4. Author name.
+5. Author email.
+6. GitHub username.
+7. License (MIT is the only maintained license template).
+8. Output location (current directory by default; a requested subdirectory is passed as `--output`).
+9. Test framework (`pytest` by default; `unittest` is supported).
+10. Sandbox (`true`).
+11. Admin hooks (`true`), models placeholder (`true`), StreamField block (`false`), JSON API example (`false`), each separately.
+12. Cleanup confirmation after successful generation (default: no).
+
+Derive the package-name default from the current directory basename: lowercase,
+replace spaces/underscores with hyphens, remove other characters, collapse repeated
+hyphens, and trim hyphens. Use `wagtail-example-package` if it does not match
+`^[a-z0-9]+(-[a-z0-9]+)*$` or cannot produce a valid Python module identifier.
+Use `A reusable Wagtail package` for description. Use `git config user.name` and
+`git config user.email` for author defaults, falling back to `Your Name` and
+`you@example.com`. Derive GitHub owner from the remote when available; otherwise
+slugify the author's name or use `your-github-username`.
+
+## Generate a new package
+
+1. Choose a clean destination. The generator permits only the installed skill
+   and optional `README.md`, `usage.md`, and `install.sh`; other existing content
+   or symlinks cause an error. Do not bypass this check or overwrite a project.
+2. Create a temporary working directory **outside the destination** for JSON
+   input files. Fetch version data once, using the session's current date:
 
-## Quick Start
-
-When the user wants to scaffold a Wagtail package:
-
-1. **GUARDRAIL CHECK**: Verify the directory is clean before proceeding
-   - Check if any files exist besides agent skill directories and optional installer docs:
-     - `.codex/skills/wagtail-package-scaffolder/`
-     - `.claude/skills/wagtail-package-scaffolder/`
-     - `skills/wagtail-package-scaffolder/` for legacy/manual installs
-     - `install.sh`, `usage.md`, `readme.md` (case-insensitive)
-   - If other files exist, abort with an error message: "The directory contains existing files. This skill only works in a clean directory with just the installed scaffolding skill and optional readme.md/usage.md/install.sh files. Please run this skill in an empty directory or a new subdirectory."
-   - Only proceed if the directory is clean
-
-2. **FETCH VERSION COMPATIBILITY**: Query official Wagtail sources for current version support (see **Dynamic Version Detection** section below)
-   - Fetch release schedule and compatibility matrix
-   - Display detected versions to user
-   - Allow user to confirm defaults or specify custom constraints
-
-3. **COLLECT INPUTS ONE QUESTION AT A TIME**: Follow the **One-Question Interaction Flow** below
-4. Generate all files using the structures in `references/file-templates.md`
-5. Follow the **Generation Workflow** for proper file creation order
-
-**Default behavior**:
-- Generate all files in the current working directory unless user requests a subdirectory
-- Use pytest for testing unless user prefers unittest
-- Include sandbox development site unless user opts out
-
-## Deterministic Generation Contract
-
-This skill fetches live Wagtail compatibility data, but rendering MUST be deterministic after the data is fetched.
-
-For the same user inputs, same system date, same fetched `version_data`, and same selected options, the generated file tree MUST be byte-for-byte identical. To preserve this:
-
-- Use the system date as `YYYY-MM-DD` only. Do not render localized month names in generated files.
-- Normalize all version lists with numeric ascending sort before calculating defaults, matrices, classifiers, documentation, and display output.
-- Normalize all generated text to LF line endings with exactly one final newline per file.
-- Generate files in the exact order listed in **Generation Workflow**.
-- Do not leave unresolved placeholders or renderer instructions in generated files. Generated files MUST NOT contain `CONDITIONAL`, `DYNAMIC`, `<DYNAMIC>`, `Pseudo-code`, `pseudo-code`, or unresolved `{variable}` placeholders.
-- Abort instead of guessing when required version fields, required user inputs, or required template values are missing after defaults are applied.
-- Preserve the exact section order, key order, array order, and dependency order defined in `references/file-templates.md`.
-
-## One-Question Interaction Flow
-
-**IMPORTANT**: Ask exactly one unresolved question per message. Do not batch multiple unanswered fields into one prompt, checklist, table, or bullet list. This applies to every user-facing decision, including version constraints, package metadata, feature choices, output location, sandbox choice, and cleanup confirmation.
-
-Every question must include a concrete default in the wording. For example: `Package name [default: wagtail-example-package]?`
-
-For multiple-choice questions:
-- Put the default or recommended option first
-- Label it as the default or recommended option
-- Ask only that one decision in the message
-
-For free-text questions:
-- Ask for one value only
-- Show the default in the prompt
-- Accept a provided value, an empty/implicit confirmation if the agent interface supports it, or an explicit response such as "use default"
-
-If the user already supplied a value in their initial request, skip only that specific question and continue asking the remaining unresolved questions one at a time.
-
-Ask questions in this exact order:
-
-1. Version defaults or custom constraints
-2. Package name
-3. Description
-4. Author name
-5. Author email
-6. GitHub username
-7. License
-8. Output location
-9. Test framework
-10. Sandbox site
-11. Optional feature flags, asked separately in this order: admin integration, example models, StreamField blocks, REST API endpoints
-12. Cleanup confirmation after generation
-
-Default derivation rules:
-- `package_name`: lowercase the current directory basename, replace spaces and underscores with hyphens, remove characters other than `a-z`, `0-9`, and `-`, collapse repeated hyphens, trim leading/trailing hyphens, and use it only if it matches `^[a-z0-9]+(-[a-z0-9]+)*$`; otherwise use `wagtail-example-package`
-- `description`: `A reusable Wagtail package`
-- `author_name`: `git config user.name`; if unavailable, use `Your Name`
-- `author_email`: `git config user.email`; if unavailable, use `you@example.com`
-- `github_username`: use the Git remote owner if detectable; otherwise use a slugified `author_name`; otherwise use `your-github-username`
-- `license`: `MIT`
-- `create_subdirectory`: `false` (generate in the current directory)
-- `test_framework`: `pytest`
-- `include_sandbox`: `true`
-- Optional feature flags: `include_admin=true`, `include_models=true`, `include_blocks=false`, `include_api=false`
-
-Input normalization rules:
-- Treat an empty answer, `default`, or `use default` as the displayed default for that single question.
-- Normalize boolean answers as true for `yes`, `y`, `true`, `1`, `include`, and false for `no`, `n`, `false`, `0`, `skip`.
-- `module_name`: replace hyphens in `package_name` with underscores. Abort if the result is not a valid Python identifier or is a Python reserved word.
-- `module_name_camel`: split `module_name` on underscores, capitalize each part, and concatenate.
-- `module_name_upper`: uppercase `module_name`.
-- `package_title`: split `package_name` on hyphens, capitalize each word, and join with single spaces.
-- `author_email`: accept only a single email-like value containing one `@` and at least one dot after `@`; otherwise ask again.
-- `github_username`: trim whitespace, strip a leading `@`, and accept only `^[A-Za-z0-9-]+$`; otherwise ask again.
-- `license`: render only the exact supplied value; the built-in template is deterministic for `MIT`.
-
-## Input Variables
-
-Collect these from the user before generating:
-
-| Variable | Required | Example | Description |
-|----------|----------|---------|-------------|
-| `package_name` | Yes | `wagtail-ai-images` | PyPI package name (lowercase, hyphens) |
-| `module_name` | Auto | `wagtail_ai_images` | Python module (derived: replace `-` with `_`) |
-| `description` | Yes | `AI-powered image generation for Wagtail` | One-line description |
-| `author_name` | Yes | `Jane Developer` | Package author |
-| `author_email` | Yes | `jane@example.com` | Author email |
-| `github_username` | Yes | `janedeveloper` | For repo URLs |
-| `wagtail_min` | No | (dynamic) | Minimum Wagtail version (default: detected oldest LTS from official sources) |
-| `django_min` | No | (dynamic) | Minimum Django version (default: minimum for detected oldest LTS) |
-| `python_min` | No | (dynamic) | Minimum Python version (default: minimum for detected oldest LTS) |
-| `license` | No | `MIT` | License type (default: `MIT`) |
-| `include_admin` | No | `true` | Include Wagtail admin integration |
-| `include_models` | No | `true` | Include example models |
-| `include_blocks` | No | `false` | Include StreamField blocks |
-| `include_api` | No | `false` | Include REST API endpoints |
-| `test_framework` | No | `pytest` | Testing framework: `pytest` (default) or `unittest` |
-| `include_sandbox` | No | `true` | Include sandbox development site (default: `true`) |
-| `create_subdirectory` | No | `false` | Create package in `{package_name}/` subdirectory (default: generate in current directory) |
-
-## Dynamic Version Detection
-
-**IMPORTANT**: Execute these steps before collecting user input to ensure current version compatibility data.
-
-Use this fixed source order and error behavior:
-
-1. Fetch `https://github.com/wagtail/wagtail/wiki/Release-schedule`.
-2. Fetch `https://docs.wagtail.org/en/stable/releases/upgrading.html`.
-3. Use a 20 second timeout per source when the execution environment supports timeouts.
-4. If either source cannot be fetched, parsed, or validated, abort with the error message in **Step 6**. Do not continue with cached, remembered, or estimated data.
-
-Version strings MUST use `major.minor` format. Sort versions numerically by `(major, minor)`, not lexicographically.
-
-### Step 1: Fetch Wagtail Release Schedule
-
-Use the agent's available web/documentation retrieval tool or HTTP client to retrieve the current release schedule:
-
-- **URL**: https://github.com/wagtail/wagtail/wiki/Release-schedule
-- **Prompt**: "Extract the release schedule table showing Version, Release Date, and Security Support end dates. Return as a JSON array with fields: version (string), is_lts (boolean), release_date (date in YYYY-MM-DD format), support_end (date in YYYY-MM-DD format). Only include rows that have all four fields."
-- Parse the response into structured data
-- Use the current system date as `YYYY-MM-DD`
-- Filter to keep only versions where `release_date <= current_date` and `support_end >= current_date`
-- Sort retained rows by numeric version ascending
-
-**Example output format**:
-```json
-{
-  "versions": [
-    {"version": "7.0", "is_lts": true, "release_date": "2025-05-07", "support_end": "2026-11-02"},
-    {"version": "7.1", "is_lts": false, "release_date": "2025-08-06", "support_end": "2026-08-02"},
-    {"version": "7.2", "is_lts": false, "release_date": "2025-11-05", "support_end": "2026-11-02"}
-  ]
-}
-```
-
-### Step 2: Fetch Wagtail-Django-Python Compatibility Matrix
-
-Use the agent's available web/documentation retrieval tool or HTTP client to retrieve the compatibility matrix:
-
-- **URL**: https://docs.wagtail.org/en/stable/releases/upgrading.html
-- **Prompt**: "Extract the compatibility matrix table showing which Django and Python versions are supported by each Wagtail version. Return as JSON object where keys are Wagtail versions (as strings like '7.0', '7.1', etc.) and values contain arrays of Django versions and Python versions supported by that Wagtail version."
-- Parse the response into structured data
-- Keep only versions retained from Step 1
-- Sort every `django` and `python` array numerically ascending
-
-**Example output format**:
-```json
-{
-  "7.0": {
-    "django": ["4.2", "5.1", "5.2"],
-    "python": ["3.9", "3.10", "3.11", "3.12", "3.13"]
-  },
-  "7.1": {
-    "django": ["4.2", "5.1", "5.2"],
-    "python": ["3.9", "3.10", "3.11", "3.12", "3.13"]
-  },
-  "7.2": {
-    "django": ["4.2", "5.1", "5.2"],
-    "python": ["3.10", "3.11", "3.12", "3.13", "3.14"]
-  }
-}
-```
-
-### Step 3: Build Complete Version Data Structure
-
-Merge the fetched data from Steps 1 and 2 into this exact schema. Abort if any retained Wagtail version is missing compatibility data, if any arrays are empty, or if no supported LTS version remains.
-
-```json
-{
-  "supported_wagtail_versions": [
-    {
-      "version": "7.0",
-      "is_lts": true,
-      "release_date": "2025-05-07",
-      "support_end": "2026-11-02",
-      "django_versions": ["4.2", "5.1", "5.2"],
-      "python_versions": ["3.9", "3.10", "3.11", "3.12", "3.13"]
-    },
-    {
-      "version": "7.1",
-      "is_lts": false,
-      "release_date": "2025-08-06",
-      "support_end": "2026-08-02",
-      "django_versions": ["4.2", "5.1", "5.2"],
-      "python_versions": ["3.9", "3.10", "3.11", "3.12", "3.13"]
-    },
-    {
-      "version": "7.2",
-      "is_lts": false,
-      "release_date": "2025-11-05",
-      "support_end": "2026-11-02",
-      "django_versions": ["4.2", "5.1", "5.2"],
-      "python_versions": ["3.10", "3.11", "3.12", "3.13", "3.14"]
-    }
-  ],
-  "all_django_versions": ["4.2", "5.1", "5.2"],
-  "all_python_versions": ["3.9", "3.10", "3.11", "3.12", "3.13", "3.14"],
-  "defaults": {
-    "wagtail_min": "7.0",
-    "django_min": "4.2",
-    "python_min": "3.9"
-  },
-  "exclusions": []
-}
-```
-
-**Logic for calculating defaults**:
-- `wagtail_min`: first LTS item in `supported_wagtail_versions` after numeric ascending sort
-- `django_min`: first item in that Wagtail version's `django_versions`
-- `python_min`: first item in that Wagtail version's `python_versions`
-- `all_django_versions`: unique union of all `django_versions`, sorted numerically ascending
-- `all_python_versions`: unique union of all `python_versions`, sorted numerically ascending
-
-### Step 4: Generate Exclusion Rules
-
-Generate exclusions deterministically from compatibility data and documented Django/Python constraints. Sort exclusions by `python`, then `django`, then `wagtail`, numerically ascending. Each exclusion MUST have exactly one of `django` or `wagtail`.
-
-Rules:
-1. For each Python in `all_python_versions` and Django in `all_django_versions`, add an exclusion when the Django release does not support that Python release according to Django's supported Python version documentation.
-2. For each Python in `all_python_versions` and Wagtail in `supported_wagtail_versions`, add an exclusion when the Wagtail row's `python_versions` does not include that Python.
-3. Do not add Django/Wagtail cross-product exclusions unless they are present in official compatibility data.
-
-Documented Django/Python constraints to apply:
-- Django 4.2 supports Python 3.8 through 3.12.
-- Django 5.0 supports Python 3.10 through 3.12.
-- Django 5.1 supports Python 3.10 through 3.13.
-- Django 5.2 supports Python 3.10 through 3.14.
-- For newer Django versions not listed here, fetch and validate the official Django supported Python versions before adding that Django version. Abort if the constraint cannot be verified.
-
-**Generate exclusions array**:
-```json
-{
-  "exclusions": [
-    {"python": "3.13", "django": "4.2", "reason": "Django 4.2 max is Python 3.12"},
-    {"python": "3.14", "django": "4.2", "reason": "Django 4.2 max is Python 3.12"},
-    {"python": "3.14", "wagtail": "7.0", "reason": "Python 3.14 only in Wagtail 7.2+"},
-    {"python": "3.14", "wagtail": "7.1", "reason": "Python 3.14 only in Wagtail 7.2+"}
-  ]
-}
-```
-
-Add this to the version_data structure.
-
-### Step 5: Display Version Information to User
-
-Show a clear summary of the detected versions with the option to override:
-
-```
-Wagtail Version Compatibility Detected
-
-Currently Supported Wagtail Versions:
-  - 7.0 LTS (recommended) - supported until 2026-11-02
-  - 7.1 - supported until 2026-08-02
-  - 7.2 (latest) - supported until 2026-11-02
-
-Django Versions: 4.2, 5.1, 5.2
-Python Versions: 3.9, 3.10, 3.11, 3.12, 3.13, 3.14
-
-Recommended Defaults:
-  - Minimum Wagtail: 7.0
-  - Minimum Django: 4.2
-  - Minimum Python: 3.9
-
-These versions will be used in:
-  - pyproject.toml dependencies and classifiers
-  - tox.ini test matrix (all compatible combinations)
-  - GitHub Actions CI (testing across versions)
-  - Documentation requirements
-
-Would you like to:
-[1] Use recommended defaults (default)
-[2] Specify custom version constraints
-```
-
-**If user chooses option 1**: Proceed with the detected defaults
-
-**If user chooses option 2**:
-- Prompt for custom `wagtail_min`, then `django_min`, then `python_min`, asking only one version question per message and showing the detected default for each
-- Validate each answer against the compatibility matrix before asking the next version question
-- Warn if specified versions are incompatible or not currently supported
-- Update the defaults in version_data
-
-### Step 6: Error Handling
-
-**If version data retrieval fails** (network error, timeout, rate limiting):
-```
-Unable to fetch current version data from official Wagtail sources.
-Error: {error_message}
-
-Cannot proceed with package generation without current version compatibility data.
-
-This is likely a temporary network issue. Please try again in a few moments.
-
-If the problem persists:
-1. Check your internet connection
-2. Verify the Wagtail wiki and docs are accessible:
-   - https://github.com/wagtail/wagtail/wiki/Release-schedule
-   - https://docs.wagtail.org/en/stable/releases/upgrading.html
-3. Try again later when the services are available
-
-Package generation has been aborted.
-```
-
-**If parsing fails** (unexpected page format):
-```
-Successfully fetched data but unable to parse version compatibility information.
-The page format may have changed since this skill was last updated.
-
-Cannot proceed with package generation without accurate version data.
-
-Please report this issue at:
-https://github.com/nm-packages/wagtail-package-scaffold/issues
-
-Include this information:
-- Date: {current_date}
-- Error: Unable to parse version data
-- URLs attempted:
-  - https://github.com/wagtail/wagtail/wiki/Release-schedule
-  - https://docs.wagtail.org/en/stable/releases/upgrading.html
-
-Package generation has been aborted.
-```
-
-**Important**: Do not proceed with package generation if version data cannot be fetched and parsed successfully. Accurate version compatibility information is critical for generating a working package.
-
-## Generation Workflow
-
-**IMPORTANT**:
-- By default, generate all files in the **current working directory**. Only create a subdirectory if `create_subdirectory` is `true`.
-- Render version-dependent content from the fetched `version_data` structure using the canonical algorithms in `references/file-templates.md`.
-- Simple variables (package_name, author_name, etc.) use exact placeholder substitution.
-- Complex version content (classifiers, tox envlist, GitHub Actions matrix) must be generated before writing the target file.
-- For test-framework alternatives, render only the selected alternative. Do not write unused alternatives into generated files.
-- If `include_sandbox` is `false`, skip the entire sandbox generation section (section 2) and omit sandbox-related commands from the Makefile (sandbox, migrate, superuser targets).
-- Before reporting completion, scan generated files and abort with a clear error if any unresolved placeholder or renderer instruction remains.
-
-Generate files in this order:
-
-### 1. Project Root Files
-
-Generate in current directory (or `{package_name}/` if `create_subdirectory` is true):
-
-```
-[current directory or {package_name}/]
-├── pyproject.toml          # ALWAYS first - defines the package
-├── README.md
-├── LICENSE
-├── CHANGELOG.md
-├── MANIFEST.in
-├── test_manage.py          # Django management wrapper for tests
-├── .gitignore
-├── .pre-commit-config.yaml
-├── tox.ini                 # Local testing matrix
-└── Makefile
-```
-
-### 2. Sandbox Development Site (if include_sandbox is true)
-
-**IMPORTANT**: The sandbox is generated using the official `wagtail start` command.
-
-To generate the sandbox:
-
-1. **Create and activate a temporary virtual environment** for running the wagtail command:
    ```bash
-   python -m venv .venv-temp
-   source .venv-temp/bin/activate  # or .venv-temp\Scripts\activate on Windows
+   python3 /absolute/path/to/skill/scripts/scaffold.py versions \
+       --date YYYY-MM-DD --output /temporary/path/version-data.json
    ```
 
-2. **Install the selected Wagtail minor version** in the temporary environment. Use `version_data.defaults.wagtail_min` after any user override, and pin the install to that minor release:
+   The command prints recommended minima. Show the retained Wagtail versions,
+   support dates, and defaults from the saved JSON before asking the version
+   question. New-project defaults use the latest supported Wagtail LTS and its
+   lowest compatible Django/Python releases. Do not extract tables with prompts
+   or substitute remembered data.
+3. Collect missing inputs and write a JSON configuration in the temporary
+   directory. Validate custom minima against the fetched data; the generator
+   requires each minimum to occur in the resulting compatible matrix.
+4. Invoke the generator with those exact inputs:
+
    ```bash
-   pip install "wagtail>={wagtail_min},<{wagtail_next_minor}"
+   python3 /absolute/path/to/skill/scripts/scaffold.py generate \
+       --config /temporary/path/config.json \
+       --versions /temporary/path/version-data.json \
+       --date YYYY-MM-DD --output /absolute/path/to/destination
    ```
 
-3. **Run the wagtail start command**:
-   ```bash
-   wagtail start sandbox
-   ```
+5. Report success only when the command exits successfully. Explain how to
+   install development dependencies, run `make test`, and, when enabled, run
+   `make migrate`, `make superuser`, and `make sandbox`. Explain source edit
+   points and that optional models/admin files start as placeholders.
+6. Keep the generated `.scaffold/` directory: it stores configuration, version
+   data, date, output hashes, and generator/template identity for replay.
 
-4. **Deactivate and remove the temporary environment**:
-   ```bash
-   deactivate
-   rm -rf .venv-temp
-   ```
+Sandbox files come from repository-maintained templates. Do not install Wagtail
+or run `wagtail start` during scaffolding.
 
-The `wagtail start sandbox` command creates a complete Wagtail site structure with:
-- Full Django/Wagtail settings
-- A home app with a basic HomePage model
-- All necessary configuration files
-- Template structure
-- Migrations
+## Replay
 
-**Post-generation modifications**:
-After running `wagtail start sandbox`, you MUST make the following modifications:
+When the user requests reproduction, use their saved `.scaffold/` directory:
 
-1. **Remove unnecessary files** created by `wagtail start`:
-   - Delete `.dockerignore` (if exists)
-   - Delete `Dockerfile` (if exists)
-   - Delete `requirements.txt` (if exists)
-
-   These files are not needed since the package uses `pyproject.toml` for dependency management and doesn't require Docker configuration.
-
-2. **Consolidate settings files** (if `wagtail start` created multiple settings files):
-   - If `sandbox/sandbox/settings/` directory exists with `base.py`, `dev.py`, and `production.py`:
-     - Copy any development-specific settings from `dev.py` into `base.py`
-     - Remove `dev.py` and `production.py`
-     - Rename `settings/base.py` to `settings.py` in the `sandbox/sandbox/` directory
-     - Remove the now-empty `settings/` directory
-   - Ensure `DEBUG = True` is set in the settings file for easy development
-
-3. **Normalize generated sandbox files before editing**:
-   - Use LF line endings and one final newline per file.
-   - Keep generated imports sorted in the exact order shown in `references/file-templates.md`.
-   - Remove timestamped, machine-specific, or environment-specific comments if the generator produced any.
-
-4. **Update the settings file** (`sandbox/sandbox/settings.py`) to integrate the package:
-
-   a. Add the src directory to the Python path (add after the BASE_DIR/PROJECT_DIR definitions):
-   ```python
-   import sys
-   PROJECT_DIR = BASE_DIR.parent
-   sys.path.insert(0, str(PROJECT_DIR / "src"))
-   ```
-
-   b. Add the package to INSTALLED_APPS. Insert `"{module_name}"` in the INSTALLED_APPS list after "home" and before the Wagtail apps:
-   ```python
-   INSTALLED_APPS = [
-       # Local apps
-       "home",
-       # The package being developed
-       "{module_name}",
-       # Wagtail apps
-       "wagtail.contrib.forms",
-       # ... rest of Wagtail apps
-   ```
-
-**Note**: Only generate the sandbox if `include_sandbox` is `true`. If the user opts out, skip this entire section.
-
-### 3. Source Package
-```
-src/{module_name}/
-├── __init__.py             # Version and default_app_config
-├── apps.py                 # Django AppConfig
-├── models.py               # Models (empty placeholder)
-├── views.py                # Views (empty placeholder)
-├── wagtail_hooks.py        # Wagtail hooks (empty placeholder)
-├── blocks.py               # StreamField blocks (if include_blocks)
-├── urls.py                 # URL routing (if include_api)
-├── templates/{module_name}/
-│   └── .gitkeep
-└── static/{module_name}/
-    └── .gitkeep
-```
-
-### 4. Test Infrastructure
-```
-tests/
-├── __init__.py
-├── conftest.py             # pytest fixtures (only if test_framework is pytest)
-├── settings.py             # Django test settings
-├── test_models.py          # Placeholder model tests
-└── urls.py                 # Test URL config
-```
-
-### 5. CI/CD & Docs
-```
-.github/
-├── workflows/
-│   ├── test.yml            # Run tests on PR
-│   └── publish.yml         # Publish to PyPI on release
-└── ISSUE_TEMPLATE/
-    └── bug_report.md
-
-docs/
-├── index.md
-├── installation.md
-└── configuration.md
-```
-
-## File Templates
-
-**MANDATORY**: Read `references/file-templates.md` completely before generating any files. It contains exact templates for every file with proper variable substitution.
-
-## Modern Python Standards
-
-This skill follows 2024-2025 best practices:
-
-- **pyproject.toml only** - No setup.py, setup.cfg, or requirements.txt
-- **src layout** - Package code in `src/{module_name}/`
-- **Ruff** - For linting AND formatting (replaces Black, isort, flake8)
-- **pytest** - With pytest-django for testing
-- **GitHub Actions** - For CI/CD
-- **pre-commit** - For code quality hooks
-
-## Version Compatibility
-
-Version compatibility is **detected live** at generation time by fetching current data from official Wagtail sources:
-
-- **Release Schedule**: https://github.com/wagtail/wagtail/wiki/Release-schedule
-- **Compatibility Matrix**: https://docs.wagtail.org/en/stable/releases/upgrading.html
-
-The skill automatically:
-1. Fetches currently supported Wagtail versions
-2. Determines compatible Django and Python versions
-3. Generates validated exclusion rules for test matrices
-4. Uses the oldest LTS version as the default minimum
-
-**Note**: Version data is always fetched fresh at generation time to ensure packages support current versions. If version data cannot be fetched, package generation will abort with an error message.
-
-## Post-Generation Instructions
-
-After generating all files, provide the user with instructions based on whether a subdirectory was created:
-
-**If files were generated in current directory (create_subdirectory=false):**
 ```bash
-# Initialize git and install
-python -m venv .venv
-source .venv/bin/activate  # or .venv\Scripts\activate on Windows
-pip install -e ".[dev]"
-pre-commit install
-
-# Run tests
-{test_command}  # pytest or python test_manage.py test depending on test_framework
+python3 /absolute/path/to/skill/scripts/scaffold.py replay \
+    /original/project/.scaffold --output /new/clean/destination
 ```
 
-**If sandbox was included, also tell the user:**
-```bash
-# To run the sandbox development server:
-cd sandbox
-python manage.py migrate
-python manage.py createsuperuser
-python manage.py runserver
-# Visit http://localhost:8000/admin/ to access Wagtail admin
-```
+Replay uses the original date and saved inputs without network access. It rejects
+an altered input snapshot or a different generator/template bundle. Keep an
+original bundle or Git revision available; do not bypass identity verification.
+Replay recreates the initial scaffold, not later source edits.
 
-**If files were generated in subdirectory (create_subdirectory=true):**
-```bash
-# Navigate to package and initialize
-cd {package_name}
-python -m venv .venv
-source .venv/bin/activate  # or .venv\Scripts\activate on Windows
-pip install -e ".[dev]"
-pre-commit install
+## Cleanup
 
-# Run tests
-{test_command}  # pytest or python test_manage.py test depending on test_framework
-```
-
-**If sandbox was included, also tell the user:**
-```bash
-# To run the sandbox development server:
-cd sandbox
-python manage.py migrate
-python manage.py createsuperuser
-python manage.py runserver
-# Visit http://localhost:8000/admin/ to access Wagtail admin
-```
-
-## Cleanup Scaffolding Files
-
-After providing all post-generation instructions, inform the user about cleanup:
-
-**IMPORTANT**: Ask the user for confirmation using the agent's normal interaction mechanism before removing scaffolding files.
-
-Tell the user:
-"Now that your package is scaffolded, the following files/folders are no longer needed for developing or using the package:
-- The installed scaffolding skill directory (no longer needed):
-  - `.codex/skills/wagtail-package-scaffolder/` if using Codex
-  - `.claude/skills/wagtail-package-scaffolder/` if using Claude Code
-  - `skills/wagtail-package-scaffolder/` if using the legacy/manual layout
-- `usage.md` - Skill usage instructions (no longer needed)
-- `install.sh` - Skill installation script (no longer needed)
-
-Would you like me to remove these files to keep your package clean [default: no]?"
-
-If the user agrees (answers yes):
-1. Remove the installed scaffolding skill directory and all its contents:
-   - Codex: `.codex/skills/wagtail-package-scaffolder/`
-   - Claude Code: `.claude/skills/wagtail-package-scaffolder/`
-   - Legacy/manual: `skills/wagtail-package-scaffolder/`
-2. Remove `usage.md` and `install.sh` if they exist
-3. Confirm the removal with a brief message
-
-If the user declines:
-1. Acknowledge their choice
-2. Remind them they can manually delete these files anytime with:
-   ```bash
-   rm -rf .codex/skills/wagtail-package-scaffolder
-   rm -rf .claude/skills/wagtail-package-scaffolder
-   rm -rf skills/wagtail-package-scaffolder
-   rm -f usage.md install.sh
-   ```
-
-## Post-Generation Edit Points
-
-Tell the user where to edit next:
-
-1. **Add models**: `src/{module_name}/models.py` (empty placeholder ready for your models)
-2. **Add views**: `src/{module_name}/views.py` (empty placeholder ready for your views)
-3. **Add Wagtail hooks**: `src/{module_name}/wagtail_hooks.py` (empty placeholder ready for your hooks)
-4. **Add blocks**: `src/{module_name}/blocks.py` (if `include_blocks` is enabled)
-5. **Add templates**: `src/{module_name}/templates/{module_name}/`
-6. **Configure settings**: Document in `README.md` and `docs/configuration.md`
+After successful generation, ask whether to remove the installed skill directory
+and installer docs (`usage.md` and `install.sh`), defaulting to no. Remove only
+those named resources after an affirmative answer. Keep `.scaffold/` and the
+package README. Explain that replay still requires access to the original bundle.

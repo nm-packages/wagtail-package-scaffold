@@ -1,0 +1,10 @@
+import pytest
+from django.apps import apps
+
+
+@pytest.mark.django_db
+class TestPackage:
+    def test_app_registered(self):
+        assert apps.get_app_config("{module_name}").name == "{module_name}"
+
+{feature_tests}

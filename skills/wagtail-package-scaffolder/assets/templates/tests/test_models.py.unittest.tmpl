@@ -1,0 +1,9 @@
+from django.apps import apps
+from django.test import TestCase
+
+
+class PackageTestCase(TestCase):
+    def test_app_registered(self):
+        self.assertEqual(apps.get_app_config("{module_name}").name, "{module_name}")
+
+{feature_tests}

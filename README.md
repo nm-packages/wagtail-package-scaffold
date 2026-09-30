@@ -1,80 +1,85 @@
 # Wagtail Package Scaffolder
 
-An agent-agnostic scaffolding skill that generates production-ready Wagtail packages with live version detection and deterministic rendering.
+An agent-agnostic skill backed by a deterministic Python generator. Your coding
+agent helps choose options; Python validates inputs and renders the package.
 
 ## Features
 
-- **Live version detection** - Automatically fetches current Wagtail/Django/Python compatibility from official sources
-- **Deterministic rendering** - Produces stable output for identical inputs, fetched version data, current date, and selected options
-- **Complete package structure** - Modern Python packaging with src layout
-- **Test matrices** - tox.ini and GitHub Actions configured for all supported version combinations
-- **Optional sandbox** - Full Wagtail development site for testing
-- **Zero maintenance** - Version data updates automatically at generation time
+- Live Wagtail and Django compatibility detection without AI table extraction
+- Shared, validated Python/Django/Wagtail combinations for tox and GitHub Actions
+- Modern Python packaging with a src layout and pytest or Django unittest
+- Optional sandbox rendered from repository-maintained templates
+- Optional admin/model placeholders, StreamField block, and JSON API example
+- Saved configuration and version snapshots for explicit offline replay
+- Bundle identity and output hashes to verify reproduction
 
 ## Installation
 
-**Security Note**: Before running any installation script, review what it does:
-```bash
-curl https://raw.githubusercontent.com/nm-packages/wagtail-package-scaffold/main/install.sh | less
-```
-
-In your new empty folder where you want to generate a package, install the skill for your coding agent.
+In an empty package directory, install the complete skill bundle for your agent.
+Review [install.sh](install.sh) before executing it.
 
 For Codex:
 
 ```bash
-curl -sSL https://raw.githubusercontent.com/nm-packages/wagtail-package-scaffold/main/install.sh | bash -s -- --agent codex
+curl -fsSL https://raw.githubusercontent.com/nm-packages/wagtail-package-scaffold/main/install.sh | bash -s -- --agent codex
 ```
 
 For Claude Code:
 
 ```bash
-curl -sSL https://raw.githubusercontent.com/nm-packages/wagtail-package-scaffold/main/install.sh | bash -s -- --agent claude
+curl -fsSL https://raw.githubusercontent.com/nm-packages/wagtail-package-scaffold/main/install.sh | bash -s -- --agent claude
 ```
 
-To install into a specific target folder:
+Use `--target ./my-new-package` to install elsewhere and `--force` to replace an
+existing installation. The installer downloads scripts, templates, and their
+manifest together from one GitHub archive.
 
-```bash
-curl -sSL https://raw.githubusercontent.com/nm-packages/wagtail-package-scaffold/main/install.sh | bash -s -- --agent codex --target ./my-new-package
-```
+Then ask your agent:
 
-Once installed, ask your coding agent:
-```
+```text
 Create a Wagtail package called wagtail-hello-world
 ```
 
-The skill is installed into the project-local skill directory for your agent:
-
-- Codex: `.codex/skills/wagtail-package-scaffolder/`
-- Claude Code: `.claude/skills/wagtail-package-scaffolder/`
-
-The skill can be removed after it generates the package files.
-
-## Usage
-
-The skill will:
-1. Fetch current Wagtail version compatibility
-2. Show you detected versions and defaults
-3. Ask for each missing package value one at a time, always showing a default answer
-4. Generate all files with deterministic ordering, normalized formatting, and proper version support
-
-For identical user inputs, identical fetched version data, the same current date, and the same selected options, the generated output is intended to be byte-for-byte stable.
+The skill asks one missing question at a time with a concrete default, then calls
+Python to generate files. It is installed in
+`.codex/skills/wagtail-package-scaffolder/` or
+`.claude/skills/wagtail-package-scaffolder/`.
 
 ## Requirements
 
-- An AI coding agent with shell and file access
-- Internet connection (for version detection)
+- Python 3.11+ to run the generator; no third-party generator dependencies
+- An AI coding agent with shell/file access for the conversational workflow
+- Internet access for fresh compatibility detection
 
-## What Gets Generated
+The generator can also be invoked directly with JSON inputs. Generated packages
+have their own Python minimum, derived from the selected compatibility data.
 
-- Modern `pyproject.toml` with live version classifiers rendered in stable order
-- Complete source structure in `src/` layout
-- Test infrastructure (pytest or unittest)
-- GitHub Actions CI/CD with version matrix
-- `tox.ini` for local testing across Python/Django/Wagtail versions
-- Optional Wagtail sandbox site
-- Pre-commit hooks and development tools
+## Reproducibility
 
-## Learn More
+Every package includes `.scaffold/config.json`, `.scaffold/version-data.json`,
+and `.scaffold/metadata.json`. Keep these files and access to the original skill
+bundle or its Git revision.
 
-See [`usage.md`](usage.md) for detailed documentation.
+```bash
+python3 /path/to/original/skill/scripts/scaffold.py replay \
+    /path/to/project/.scaffold --output /path/to/new-empty-directory
+```
+
+Replay makes no network requests and uses the original generation date. Matching
+inputs and the same generator/template bundle produce identical generated paths
+and bytes. Changed snapshots or a different bundle cause an error. Replay
+recreates the initial scaffold; it does not restore later project edits or freeze
+future dependency installations.
+
+## Contributor checks
+
+```bash
+python3 -m unittest discover -s skills/wagtail-package-scaffolder/tests -v
+bash -n install.sh
+bash install.sh --help
+```
+
+See [usage.md](usage.md) for configuration and direct command examples, and the
+[generator reference](skills/wagtail-package-scaffolder/references/file-templates.md)
+for rendering and version-detection rules. Official documentation formats and
+sandbox compatibility still require maintenance as upstream projects evolve.

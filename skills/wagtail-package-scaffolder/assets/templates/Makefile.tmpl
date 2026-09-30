@@ -1,0 +1,46 @@
+.PHONY: help install dev test test-all lint format clean build publish{sandbox_phony_targets}
+
+help:
+	@echo "Available commands:"
+	@echo "  make install    - Install the package"
+	@echo "  make dev        - Install with dev dependencies"
+	@echo "  make test       - Run tests"
+	@echo "  make test-all   - Run tests across all Python/Django/Wagtail versions with tox"
+	@echo "  make lint       - Run linting"
+	@echo "  make format     - Format code"
+	@echo "  make clean      - Remove build artifacts"
+	@echo "  make build      - Build package"
+	@echo "  make publish    - Publish to PyPI"
+{sandbox_help_lines}
+
+install:
+	pip install -e .
+
+dev:
+	pip install -e ".[dev]"
+	pre-commit install
+
+test:
+	{make_test_command}
+
+test-all:
+	tox
+
+lint:
+	ruff check {lint_paths}
+
+format:
+	ruff format {lint_paths}
+	ruff check --fix {lint_paths}
+
+clean:
+	rm -rf build/ dist/ *.egg-info/ .pytest_cache/ .coverage htmlcov/ .tox/
+	find . -type d -name __pycache__ -exec rm -rf {{}} +
+
+build: clean
+	python -m build
+
+publish: build
+	twine upload dist/*
+
+{sandbox_targets}

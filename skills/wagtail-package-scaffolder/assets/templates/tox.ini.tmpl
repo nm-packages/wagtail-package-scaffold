@@ -1,0 +1,36 @@
+[tox]
+envlist =
+{tox_envlist}
+
+skip_missing_interpreters = true
+
+[testenv]
+deps =
+{tox_deps}
+{tox_test_dependencies}
+
+commands =
+{tox_commands}
+
+[testenv:lint]
+deps =
+    ruff>=0.14
+
+commands =
+    ruff check {lint_paths}
+
+[testenv:format]
+deps =
+    ruff>=0.14
+
+commands =
+    ruff format {lint_paths}
+    ruff check --fix {lint_paths}
+
+[testenv:docs]
+deps =
+    mkdocs>=1.5
+    mkdocs-material>=9.0
+
+commands =
+    mkdocs build --strict

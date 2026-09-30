@@ -2,7 +2,7 @@
 
 ## Project Structure & Module Organization
 
-This repository distributes an agent-agnostic Wagtail package scaffolding skill. The workflow lives in `skills/wagtail-package-scaffolder/SKILL.md`; generated-file templates and substitution rules live in `skills/wagtail-package-scaffolder/references/file-templates.md`. `install.sh` installs these files for Codex or Claude Code. `README.md` and `usage.md` explain installation and usage.
+This repository distributes an agent-agnostic Wagtail package scaffolding skill. The workflow lives in `skills/wagtail-package-scaffolder/SKILL.md`; Python generation lives in `skills/wagtail-package-scaffolder/scripts/`; executable templates and the ordered manifest live in `skills/wagtail-package-scaffolder/assets/`. `skills/wagtail-package-scaffolder/references/file-templates.md` documents configuration and rendering rules. `install.sh` installs these files for Codex or Claude Code. `README.md` and `usage.md` explain installation and usage.
 
 Directories such as `src/`, `tests/`, `sandbox/`, and package static assets belong to generated projects; they are not present in this repository.
 
@@ -12,7 +12,7 @@ Directories such as `src/`, `tests/`, `sandbox/`, and package static assets belo
 - `bash install.sh --help`: inspect supported arguments.
 - `bash install.sh --agent codex --target /tmp/scaffold-check`: smoke-test installation in a disposable directory; use `--agent claude` for Claude Code. Downloads come from GitHub's `main` branch, so this does not validate local template edits.
 
-There is no repository build or automated test suite. To validate template changes, scaffold a disposable project using the edited skill. Within that generated project, `make dev` installs development dependencies, `make test` runs tests, `make test-all` runs tox, and `make build` creates distribution artifacts.
+Run `python3 -m unittest discover -s skills/wagtail-package-scaffolder/tests -v` for generator regression checks. There is no repository build. To validate template changes, scaffold a disposable project using the edited generator. Within that generated project, `make dev` installs development dependencies, `make test` runs tests, `make test-all` runs tox, and `make build` creates distribution artifacts.
 
 ## Coding Style & Naming Conventions
 
@@ -33,5 +33,14 @@ Verify generated files contain no unresolved placeholders, use LF endings and on
 3. Before opening a pull request, prepare its title and detailed description and ask the developer for approval. Open the PR only after approval. Include the problem addressed, changes made, resulting behavior, validation performed, relevant issue links, and any limitations or follow-up work.
 
 Use short imperative commit subjects, following history. Update usage documentation when prompts, installer arguments, or generated output change.
+
+### Commit Planning and Staging
+
+- Plan commit boundaries before implementation. Identify independently reviewable changes and present the proposed commit sequence with the completed work for developer review.
+- Give each commit one coherent purpose. Keep implementation, required templates, and its regression tests together. Separate independently reviewable work such as installer changes, workflow/documentation updates, and contributor policy changes.
+- Use multiple focused commits when a task spans these distinct concerns. Do not collect the entire task into one commit or squash the sequence unless the developer explicitly requests it. Small changes with one coherent purpose can use one commit.
+- Keep every commit usable at its position in the sequence: include required dependencies and avoid references to files introduced only by a later commit. Do not split changes merely to increase the commit count.
+- Stage explicit file paths or selected hunks for each commit. Inspect `git diff --cached` and run `git diff --cached --check` before committing; confirm that only the intended change is staged.
+- Include the commit sequence and relevant validation results in the review summary. Approval applies to the changes reviewed; subsequent changes still require review before committing.
 
 The root `.gitignore` ignores files by default. Explicitly allow or force-add intended new contributor files; keep generated projects and local agent settings out of commits.
