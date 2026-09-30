@@ -268,7 +268,12 @@ def fetch_data(today):
 
 
 def defaults(data):
-    row = next(row for row in data["supported_wagtail_versions"] if row["is_lts"])
+    # Prefer the latest supported LTS for new projects, rather than an older
+    # LTS that remains in its security-support overlap period.
+    row = max(
+        (row for row in data["supported_wagtail_versions"] if row["is_lts"]),
+        key=lambda row: version_key(row["version"]),
+    )
     pairs = [
         (p, d)
         for p in row["python_versions"]

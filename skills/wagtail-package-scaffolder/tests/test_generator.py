@@ -88,7 +88,10 @@ class VersionTests(unittest.TestCase):
             versions.parse_releases("<table><th>Changed headers</th></table>", TODAY)
 
     def test_exact_compatible_triples(self):
-        triples = versions.combinations(versions.validate_data(DATA, TODAY), config())
+        triples = versions.combinations(
+            versions.validate_data(DATA, TODAY),
+            config(wagtail_min="7.0", django_min="4.2", python_min="3.9"),
+        )
         expected = [
             ("3.9", "4.2", "7.0"),
             ("3.10", "4.2", "7.0"),
@@ -102,11 +105,28 @@ class VersionTests(unittest.TestCase):
             ("3.14", "6.0", "7.4"),
         ]
         self.assertEqual(triples, expected)
-        self.assertEqual(config()["python_min"], "3.9")
         with self.assertRaises(ValueError):
             config(wagtail_min="7.4", django_min="4.2")
         with self.assertRaises(ValueError):
             versions.validate_data({**DATA, "django_python": {}}, TODAY)
+
+    def test_defaults_prefer_latest_supported_lts(self):
+        data = versions.validate_data(DATA, TODAY)
+        expected = {"wagtail_min": "7.4", "django_min": "5.2", "python_min": "3.10"}
+        self.assertEqual(versions.defaults(data), expected)
+        # Source order must not affect the selected LTS.
+        data["supported_wagtail_versions"].reverse()
+        self.assertEqual(versions.defaults(data), expected)
+        selected = config()
+        triples = versions.combinations(data, selected)
+        self.assertTrue(all(versions.version_key(w) >= (7, 4) for _, _, w in triples))
+        self.assertTrue(all(versions.version_key(d) >= (5, 2) for _, d, _ in triples))
+        generated = scaffold.render(selected, data, TODAY)
+        import tomllib
+
+        project = tomllib.loads(generated["pyproject.toml"])["project"]
+        self.assertEqual(project["dependencies"], ["Django>=5.2", "wagtail>=7.4"])
+        self.assertEqual(project["requires-python"], ">=3.10")
 
     def test_forthcoming_and_yanked_django_series_are_omitted(self):
         row = copy.deepcopy(DATA["supported_wagtail_versions"][0])
